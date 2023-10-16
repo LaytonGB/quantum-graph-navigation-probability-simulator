@@ -1,25 +1,33 @@
+// TODO clone the egui_demo_lib from https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/widget_gallery.rs
+
+use egui::panel::Side;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
+pub struct EframeApp {
     // Example stuff:
     label: String,
 
     #[serde(skip)] // This how you opt-out of serialization of a field
     value: f32,
+
+    #[serde(skip)]
+    selected_tool: Option<&'static str>,
 }
 
-impl Default for TemplateApp {
+impl Default for EframeApp {
     fn default() -> Self {
         Self {
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
+            selected_tool: None,
         }
     }
 }
 
-impl TemplateApp {
+impl EframeApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -33,9 +41,13 @@ impl TemplateApp {
 
         Default::default()
     }
+
+    pub fn update_tool(&mut self, new_tool: Option<&'static str>) {
+        self.selected_tool = new_tool;
+    }
 }
 
-impl eframe::App for TemplateApp {
+impl eframe::App for EframeApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
@@ -46,8 +58,21 @@ impl eframe::App for TemplateApp {
         // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
+        // Custom font setup
+        // let mut fonts = FontDefinitions::default();
+        // fonts.font_data.insert(
+        //     "arial".to_owned(),
+        //     FontData::from_static(include_bytes!("../assets/fonts/arial.ttf")),
+        // );
+        // fonts
+        //     .families
+        //     .get_mut(&FontFamily::Monospace)
+        //     .unwrap()
+        //     .insert(0, "arial".to_owned());
+        // ctx.set_fonts(fonts);
+
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
+            // The top panel is often a good place for a menu bar
 
             egui::menu::bar(ui, |ui| {
                 #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
@@ -63,6 +88,19 @@ impl eframe::App for TemplateApp {
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
+
+        egui::SidePanel::new(Side::Left, "left toolbar")
+            .resizable(false)
+            .exact_width(40.0)
+            .show(ctx, |ui| {
+                ui.label(self.selected_tool.unwrap_or("No tool selected"));
+                if ui.button("Node").clicked() {
+                    self.update_tool(Some("Node"));
+                }
+                if ui.button("Line").clicked() {
+                    self.update_tool(Some("Line"));
+                }
+            });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
