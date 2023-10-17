@@ -30,6 +30,8 @@ impl Canvas {
             .legend(Legend::default())
             .show(ui, |plot_ui| {
                 plot_ui.points(self.nodes());
+
+                // TODO examine [`pointer_coordinate`] and reverse to find actual distance mouse-to-node
                 pointer_coords = plot_ui.pointer_coordinate();
             });
         let res = plot_res.response;
