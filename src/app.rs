@@ -1,27 +1,16 @@
 // TODO clone the egui_demo_lib from https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/widget_gallery.rs
 
 use egui::panel::Side;
+use serde::{Deserialize, Serialize};
 
-use crate::{Canvas, LineTool, NodeTool, Tool};
+use crate::{Canvas, Tool};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Default, Deserialize, Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
     canvas: Canvas,
-
-    #[serde(skip)]
-    selected_tool: Option<&'static str>,
-}
-
-impl Default for EframeApp {
-    fn default() -> Self {
-        Self {
-            // Example stuff:
-            canvas: Canvas::default(),
-            selected_tool: None,
-        }
-    }
+    selected_tool: Tool,
 }
 
 impl EframeApp {
@@ -37,10 +26,6 @@ impl EframeApp {
         }
 
         Default::default()
-    }
-
-    pub fn update_tool(&mut self, new_tool: Option<&'static str>) {
-        self.selected_tool = new_tool;
     }
 }
 
@@ -97,13 +82,9 @@ impl eframe::App for EframeApp {
             .resizable(false)
             .exact_width(60.0)
             .show(ctx, |ui| {
-                let mut tool_buttons: Vec<Box<dyn Tool>> =
-                    vec![Box::new(NodeTool::default()), Box::new(LineTool::default())];
+                let mut tool_buttons: Vec<Tool> = vec![Tool::Select, Tool::Node, Tool::Line];
                 for tool in tool_buttons.iter_mut() {
-                    let active = self.selected_tool.clone().unwrap_or(&"") == tool.name();
-                    if tool.show(ui, active) {
-                        self.update_tool(Some(tool.name()));
-                    }
+                    tool.show(ui, &mut self.selected_tool);
                 }
             });
 

@@ -2,6 +2,8 @@ use egui::Ui;
 use egui_plot::{Legend, Plot, PlotPoint, Points};
 use serde::{Deserialize, Serialize};
 
+use crate::Tool;
+
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct Canvas {
     nodes: Vec<[f64; 2]>,
@@ -21,7 +23,7 @@ impl Canvas {
         Points::new(self.nodes.clone()).filled(true).radius(5.)
     }
 
-    pub fn show(&mut self, ui: &mut Ui, selected_tool: Option<&'static str>) {
+    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool) {
         let mut pointer_coords = None;
         let plot_res = Plot::new("canvas")
             .data_aspect(1.0)
@@ -33,7 +35,7 @@ impl Canvas {
         let res = plot_res.response;
         if res.clicked() {
             if let Some(PlotPoint { x, y }) = pointer_coords {
-                if let Some("Node") = selected_tool {
+                if let Tool::Node = selected_tool {
                     self.add_node((x, y));
                 }
             }
