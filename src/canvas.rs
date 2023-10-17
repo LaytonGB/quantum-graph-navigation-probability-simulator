@@ -13,13 +13,6 @@ impl Canvas {
         self.nodes.push(node);
     }
 
-    pub fn remove_node(&mut self, node: impl Into<[f64; 2]>) {
-        let node: [f64; 2] = node.into();
-        if let Some(index) = self.nodes.iter().position(|&n| n == node) {
-            self.nodes.remove(index);
-        }
-    }
-
     pub fn clear_nodes(&mut self) {
         self.nodes = Vec::new();
     }
@@ -28,7 +21,7 @@ impl Canvas {
         Points::new(self.nodes.clone()).filled(true).radius(5.)
     }
 
-    pub fn show(&mut self, ui: &mut Ui) {
+    pub fn show(&mut self, ui: &mut Ui, selected_tool: Option<&'static str>) {
         let mut pointer_coords = None;
         let plot_res = Plot::new("canvas")
             .data_aspect(1.0)
@@ -40,7 +33,9 @@ impl Canvas {
         let res = plot_res.response;
         if res.clicked() {
             if let Some(PlotPoint { x, y }) = pointer_coords {
-                self.add_node((x, y));
+                if let Some("Node") = selected_tool {
+                    self.add_node((x, y));
+                }
             }
         }
     }

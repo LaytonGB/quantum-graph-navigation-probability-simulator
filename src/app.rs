@@ -95,7 +95,7 @@ impl eframe::App for EframeApp {
 
         egui::SidePanel::new(Side::Left, "left toolbar")
             .resizable(false)
-            .exact_width(40.0)
+            .exact_width(60.0)
             .show(ctx, |ui| {
                 let mut tool_buttons: Vec<Box<dyn Tool>> =
                     vec![Box::new(NodeTool::default()), Box::new(LineTool::default())];
@@ -107,7 +107,7 @@ impl eframe::App for EframeApp {
                 }
             });
 
-        egui::CentralPanel::default().show(ctx, |ui| self.canvas.show(ui));
+        egui::CentralPanel::default().show(ctx, |ui| self.canvas.show(ui, self.selected_tool));
     }
 }
 
