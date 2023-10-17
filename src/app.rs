@@ -2,6 +2,8 @@
 
 use egui::panel::Side;
 
+use crate::{LineTool, NodeTool, Tool};
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -93,12 +95,13 @@ impl eframe::App for EframeApp {
             .resizable(false)
             .exact_width(40.0)
             .show(ctx, |ui| {
-                ui.label(self.selected_tool.unwrap_or("No tool selected"));
-                if ui.button("Node").clicked() {
-                    self.update_tool(Some("Node"));
-                }
-                if ui.button("Line").clicked() {
-                    self.update_tool(Some("Line"));
+                let mut tool_buttons: Vec<Box<dyn Tool>> =
+                    vec![Box::new(NodeTool::default()), Box::new(LineTool::default())];
+                for tool in tool_buttons.iter_mut() {
+                    let active = self.selected_tool.clone().unwrap_or(&"") == tool.name();
+                    if tool.show(ui, active) {
+                        self.update_tool(Some(tool.name()));
+                    }
                 }
             });
 
