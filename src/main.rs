@@ -5,6 +5,7 @@
 // TODO add load button
 // TODO configure line tool
 // TODO make `select` tool open interaction menu
+// TODO make `line` tool select first node clicked and connect to second node clicked
 // TODO hover + `del` or `backspace` deletes hovered item
 
 // When compiling natively:
