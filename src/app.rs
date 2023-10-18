@@ -10,6 +10,8 @@ use crate::{Canvas, Tool};
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
     canvas: Canvas,
+
+    #[serde(skip)] // don't cache this tool for next startup
     selected_tool: Tool,
 }
 

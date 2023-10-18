@@ -1,8 +1,10 @@
 use egui::{Pos2, Ui};
-use egui_plot::{Legend, Plot, PlotPoint, Points};
+use egui_plot::{Legend, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
 use crate::Tool;
+
+const POINTER_INTERACTION_RADIUS: f64 = 16.0;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct Canvas {
@@ -54,57 +56,67 @@ impl Canvas {
         Points::new(self.nodes.clone()).filled(true).radius(5.)
     }
 
-    // TODO cleanup
-    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool) {
-        let mut pointer_coords = None;
-        let mut global_pointer_coords = Err(());
-
-        Plot::new("canvas")
-            .data_aspect(1.0)
-            .legend(Legend::default())
-            .show(ui, |plot_ui| {
-                plot_ui.points(self.nodes());
-
-                let res = plot_ui.response();
-                pointer_coords = plot_ui.pointer_coordinate();
-                global_pointer_coords = if let Some(global_pointer_coords) =
-                    plot_ui.ctx().input(|i| i.pointer.latest_pos())
-                {
-                    Ok(global_pointer_coords - res.drag_delta())
-                } else {
-                    Err(())
-                };
-
-                if res.clicked() {
-                    if let Some(PlotPoint {
-                        x: pointer_x,
-                        y: pointer_y,
-                    }) = pointer_coords
-                    {
-                        match selected_tool {
-                            Tool::Select => {
-                                let _ = dbg!(global_pointer_coords);
-                                let node = dbg!(self.find_closest_node([pointer_x, pointer_y]));
-                                if let (Ok(Pos2 { x, y }), Ok([node_x, node_y])) =
-                                    (global_pointer_coords, node)
-                                {
-                                    let node_pos = dbg!(plot_ui.screen_from_plot(PlotPoint {
-                                        x: node_x,
-                                        y: node_y,
-                                    }));
-                                    let node_to_pointer_dist = ((node_pos.x - x).powi(2)
-                                        + (node_pos.y - y).powi(2))
-                                    .sqrt();
-                                    if node_to_pointer_dist <= 16.0 {
-                                        let _ = dbg!(self.remove_node([node_x, node_y]));
-                                    }
-                                }
-                            }
-                            Tool::Node => self.add_node((pointer_x, pointer_y)),
-                            Tool::Line => todo!(),
+    fn click_handler(
+        &mut self,
+        plot_ui: &mut PlotUi,
+        selected_tool: Tool,
+        pointer_coords: Option<PlotPoint>,
+        global_pointer_coords: Result<Pos2, ()>,
+    ) {
+        if let Some(PlotPoint {
+            x: pointer_x,
+            y: pointer_y,
+        }) = pointer_coords
+        {
+            match selected_tool {
+                Tool::Select => {
+                    if let (Ok(Pos2 { x, y }), Ok([node_x, node_y])) = (
+                        global_pointer_coords,
+                        self.find_closest_node([pointer_x, pointer_y]),
+                    ) {
+                        let node_pos = plot_ui.screen_from_plot(PlotPoint {
+                            x: node_x,
+                            y: node_y,
+                        });
+                        let node_to_pointer_dist =
+                            ((node_pos.x - x).powi(2) + (node_pos.y - y).powi(2)).sqrt();
+                        if node_to_pointer_dist as f64 <= POINTER_INTERACTION_RADIUS {
+                            self.remove_node([node_x, node_y]).ok();
                         }
                     }
                 }
-            });
+                Tool::Node => self.add_node((pointer_x, pointer_y)),
+                Tool::Line => todo!(),
+            }
+        }
+    }
+
+    fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool) {
+        plot_ui.points(self.nodes());
+
+        let res = plot_ui.response();
+        let pointer_coords = plot_ui.pointer_coordinate();
+        let global_pointer_coords =
+            if let Some(global_pointer_coords) = plot_ui.ctx().input(|i| i.pointer.latest_pos()) {
+                Ok(global_pointer_coords - res.drag_delta())
+            } else {
+                Err(())
+            };
+
+        if res.clicked() {
+            self.click_handler(
+                plot_ui,
+                selected_tool,
+                pointer_coords,
+                global_pointer_coords,
+            );
+        }
+    }
+
+    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool) {
+        Plot::new("canvas")
+            .data_aspect(1.0)
+            .legend(Legend::default())
+            .show(ui, |plot_ui| self.plot_show(plot_ui, selected_tool));
     }
 }
