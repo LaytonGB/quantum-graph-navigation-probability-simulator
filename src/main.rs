@@ -3,7 +3,6 @@
 
 // TODO add save button
 // TODO add load button
-// TODO configure line tool
 // TODO make `select` tool open interaction menu
 // TODO make `line` tool select first node clicked and connect to second node clicked
 // - likely requires HashMap to lookup placed nodes
