@@ -85,27 +85,19 @@ impl Canvas {
                             Tool::Select => {
                                 let _ = dbg!(global_pointer_coords);
                                 let node = dbg!(self.find_closest_node([pointer_x, pointer_y]));
-                                match (global_pointer_coords, node) {
-                                    (
-                                        Ok(Pos2 {
-                                            x: global_x,
-                                            y: global_y,
-                                        }),
-                                        Ok([node_x, node_y]),
-                                    ) => {
-                                        let node_pos = dbg!(plot_ui.screen_from_plot(PlotPoint {
-                                            x: node_x,
-                                            y: node_y,
-                                        }));
-                                        let node_to_pointer_dist = ((node_pos.x - global_x)
-                                            .powi(2)
-                                            + (node_pos.y - global_y).powi(2))
-                                        .sqrt();
-                                        if node_to_pointer_dist <= 16.0 {
-                                            let _ = dbg!(self.remove_node([node_x, node_y]));
-                                        }
+                                if let (Ok(Pos2 { x, y }), Ok([node_x, node_y])) =
+                                    (global_pointer_coords, node)
+                                {
+                                    let node_pos = dbg!(plot_ui.screen_from_plot(PlotPoint {
+                                        x: node_x,
+                                        y: node_y,
+                                    }));
+                                    let node_to_pointer_dist = ((node_pos.x - x).powi(2)
+                                        + (node_pos.y - y).powi(2))
+                                    .sqrt();
+                                    if node_to_pointer_dist <= 16.0 {
+                                        let _ = dbg!(self.remove_node([node_x, node_y]));
                                     }
-                                    _ => (),
                                 }
                             }
                             Tool::Node => self.add_node((pointer_x, pointer_y)),
