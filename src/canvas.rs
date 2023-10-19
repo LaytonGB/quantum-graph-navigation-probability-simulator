@@ -91,6 +91,7 @@ impl Canvas {
     fn click_handler(
         &mut self,
         plot_ui: &PlotUi,
+        state: &mut InputState,
         selected_tool: Tool,
         pointer_coords: PlotPoint,
         global_pointer_coords: Result<Pos2, ()>,
@@ -114,16 +115,17 @@ impl Canvas {
             };
 
         if let Some(pointer_coords) = pointer_coords {
-            if plot_ui.response().clicked() {
-                self.click_handler(
-                    plot_ui,
-                    selected_tool,
-                    pointer_coords,
-                    global_pointer_coords,
-                );
-            }
-
             plot_ui.ctx().input_mut(|state| {
+                if plot_ui.response().clicked() {
+                    self.click_handler(
+                        plot_ui,
+                        state,
+                        selected_tool,
+                        pointer_coords,
+                        global_pointer_coords,
+                    );
+                }
+
                 self.key_handler(plot_ui, state, pointer_coords, global_pointer_coords);
             });
         }
