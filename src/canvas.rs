@@ -2,32 +2,31 @@ use egui::{InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
-use crate::Tool;
+use crate::{GraphNode, Tool};
 
 const POINTER_INTERACTION_RADIUS: f64 = 16.0;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct Canvas {
-    nodes: Vec<[f64; 2]>,
+    nodes: Vec<GraphNode>,
 }
 
 impl Canvas {
-    pub fn add_node(&mut self, node: impl Into<[f64; 2]>) {
-        let node: [f64; 2] = node.into();
-        self.nodes.push(node);
+    pub fn add_node(&mut self, node: impl Into<GraphNode>) {
+        self.nodes.push(node.into());
     }
 
-    pub fn find_closest_node(&mut self, coords: impl Into<[f64; 2]>) -> Result<[f64; 2], ()> {
+    pub fn find_closest_node(&mut self, coords: impl Into<GraphNode>) -> Result<GraphNode, ()> {
         if self.nodes.is_empty() {
             return Err(());
         }
 
-        let coords: [f64; 2] = coords.into();
+        let coords: GraphNode = coords.into();
         Ok(self
             .nodes
             .iter()
             .fold(None, |closest, node| {
-                let dist = ((node[0] - coords[0]).powi(2) + (node[1] - coords[1]).powi(2)).sqrt();
+                let dist = ((node.x - coords.x).powi(2) + (node.x - coords.y).powi(2)).sqrt();
                 match closest {
                     Some((_, closest_dist)) if closest_dist <= dist => closest,
                     _ => Some((node, dist)),
@@ -38,7 +37,7 @@ impl Canvas {
             .to_owned())
     }
 
-    pub fn remove_node(&mut self, target_node: [f64; 2]) -> Result<(), ()> {
+    pub fn remove_node(&mut self, target_node: GraphNode) -> Result<(), ()> {
         let index = self.nodes.iter().position(|&node| target_node == node);
         if let Some(index) = index {
             self.nodes.remove(index);
@@ -52,8 +51,12 @@ impl Canvas {
         self.nodes = Vec::new();
     }
 
+    fn nodes_coords(&self) -> Vec<[f64; 2]> {
+        self.nodes.iter().map(|n| [n.x, n.y]).collect()
+    }
+
     pub fn nodes(&self) -> Points {
-        Points::new(self.nodes.clone()).filled(true).radius(5.)
+        Points::new(self.nodes_coords()).filled(true).radius(5.)
     }
 
     fn key_handler(
@@ -68,7 +71,13 @@ impl Canvas {
                 Key::Backspace | Key::Delete
                     if plot_ui.response().hovered() && state.consume_key(Modifiers::NONE, key) =>
                 {
-                    if let (Ok(Pos2 { x, y }), Ok([node_x, node_y])) = (
+                    if let (
+                        Ok(Pos2 { x, y }),
+                        Ok(GraphNode {
+                            x: node_x,
+                            y: node_y,
+                        }),
+                    ) = (
                         global_pointer_coords,
                         self.find_closest_node([pointer_coords.x, pointer_coords.y]),
                     ) {
@@ -79,7 +88,7 @@ impl Canvas {
                         let node_to_pointer_dist =
                             ((node_pos.x - x).powi(2) + (node_pos.y - y).powi(2)).sqrt();
                         if node_to_pointer_dist as f64 <= POINTER_INTERACTION_RADIUS {
-                            self.remove_node([node_x, node_y]).ok();
+                            self.remove_node(GraphNode::new(node_x, node_y)).ok();
                         }
                     }
                 }
