@@ -1,4 +1,4 @@
-use egui::{Pos2, Ui};
+use egui::{InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
@@ -56,23 +56,21 @@ impl Canvas {
         Points::new(self.nodes.clone()).filled(true).radius(5.)
     }
 
-    fn click_handler(
+    fn key_handler(
         &mut self,
-        plot_ui: &mut PlotUi,
-        selected_tool: Tool,
-        pointer_coords: Option<PlotPoint>,
+        plot_ui: &PlotUi,
+        state: &mut InputState,
+        pointer_coords: PlotPoint,
         global_pointer_coords: Result<Pos2, ()>,
     ) {
-        if let Some(PlotPoint {
-            x: pointer_x,
-            y: pointer_y,
-        }) = pointer_coords
-        {
-            match selected_tool {
-                Tool::Select => {
+        for key in state.keys_down.clone() {
+            match key {
+                Key::Backspace | Key::Delete
+                    if plot_ui.response().hovered() && state.consume_key(Modifiers::NONE, key) =>
+                {
                     if let (Ok(Pos2 { x, y }), Ok([node_x, node_y])) = (
                         global_pointer_coords,
-                        self.find_closest_node([pointer_x, pointer_y]),
+                        self.find_closest_node([pointer_coords.x, pointer_coords.y]),
                     ) {
                         let node_pos = plot_ui.screen_from_plot(PlotPoint {
                             x: node_x,
@@ -85,31 +83,49 @@ impl Canvas {
                         }
                     }
                 }
-                Tool::Node => self.add_node((pointer_x, pointer_y)),
-                Tool::Line => todo!(),
+                _ => (),
             }
+        }
+    }
+
+    fn click_handler(
+        &mut self,
+        plot_ui: &PlotUi,
+        selected_tool: Tool,
+        pointer_coords: PlotPoint,
+        global_pointer_coords: Result<Pos2, ()>,
+    ) {
+        match selected_tool {
+            Tool::Select => (),
+            Tool::Node => self.add_node((pointer_coords.x, pointer_coords.y)),
+            Tool::Line => todo!(),
         }
     }
 
     fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool) {
         plot_ui.points(self.nodes());
 
-        let res = plot_ui.response();
         let pointer_coords = plot_ui.pointer_coordinate();
         let global_pointer_coords =
             if let Some(global_pointer_coords) = plot_ui.ctx().input(|i| i.pointer.latest_pos()) {
-                Ok(global_pointer_coords - res.drag_delta())
+                Ok(global_pointer_coords - plot_ui.response().drag_delta())
             } else {
                 Err(())
             };
 
-        if res.clicked() {
-            self.click_handler(
-                plot_ui,
-                selected_tool,
-                pointer_coords,
-                global_pointer_coords,
-            );
+        if let Some(pointer_coords) = pointer_coords {
+            if plot_ui.response().clicked() {
+                self.click_handler(
+                    plot_ui,
+                    selected_tool,
+                    pointer_coords,
+                    global_pointer_coords,
+                );
+            }
+
+            plot_ui.ctx().input_mut(|state| {
+                self.key_handler(plot_ui, state, pointer_coords, global_pointer_coords);
+            });
         }
     }
 
