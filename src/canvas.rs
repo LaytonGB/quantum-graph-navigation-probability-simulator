@@ -2,7 +2,7 @@ use egui::{InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
-use crate::{GraphNode, Tool};
+use crate::{euclidean_dist, euclidean_squared, GraphNode, Tool};
 
 const POINTER_INTERACTION_RADIUS: f64 = 16.0;
 
@@ -28,8 +28,7 @@ impl Canvas {
             self.nodes
                 .iter()
                 .fold(None, |closest, node| {
-                    let new_closest_distance =
-                        (node.x - coords.x).powi(2) + (node.x - coords.y).powi(2);
+                    let new_closest_distance = euclidean_squared(node, &coords);
                     match closest {
                         Some((_, current_distance)) if current_distance < new_closest_distance => {
                             closest
@@ -84,7 +83,7 @@ impl Canvas {
                     if plot_ui.response().hovered() && state.consume_key(Modifiers::NONE, key) =>
                 {
                     if let (
-                        Ok(Pos2 { x, y }),
+                        Ok(global_pointer_coords),
                         Some(GraphNode {
                             x: node_x,
                             y: node_y,
@@ -98,8 +97,8 @@ impl Canvas {
                             y: node_y,
                         });
                         let node_to_pointer_dist =
-                            ((node_pos.x - x).powi(2) + (node_pos.y - y).powi(2)).sqrt();
-                        if node_to_pointer_dist as f64 <= POINTER_INTERACTION_RADIUS {
+                            euclidean_dist(&node_pos, &global_pointer_coords);
+                        if node_to_pointer_dist <= POINTER_INTERACTION_RADIUS {
                             self.remove_node(GraphNode::new(node_x, node_y));
                         }
                     }
