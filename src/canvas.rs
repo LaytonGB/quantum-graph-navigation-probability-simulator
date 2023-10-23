@@ -12,54 +12,66 @@ pub struct Canvas {
 }
 
 impl Canvas {
+    /// Adds a node to the canvas.
     pub fn add_node(&mut self, node: impl Into<GraphNode>) {
         self.nodes.push(node.into());
     }
 
-    pub fn find_closest_node(&mut self, coords: impl Into<GraphNode>) -> Result<GraphNode, ()> {
+    /// Get node closest to given coordinates if a node exists.
+    pub fn find_closest_node(&mut self, coords: impl Into<GraphNode>) -> Option<GraphNode> {
         if self.nodes.is_empty() {
-            return Err(());
+            return None;
         }
 
         let coords: GraphNode = coords.into();
-        Ok(self
-            .nodes
-            .iter()
-            .fold(None, |closest, node| {
-                let dist = ((node.x - coords.x).powi(2) + (node.x - coords.y).powi(2)).sqrt();
-                match closest {
-                    Some((_, closest_dist)) if closest_dist <= dist => closest,
-                    _ => Some((node, dist)),
-                }
-            })
-            .unwrap()
-            .0
-            .to_owned())
+        Some(
+            self.nodes
+                .iter()
+                .fold(None, |closest, node| {
+                    let new_closest_distance =
+                        (node.x - coords.x).powi(2) + (node.x - coords.y).powi(2);
+                    match closest {
+                        Some((_, current_distance)) if current_distance < new_closest_distance => {
+                            closest
+                        }
+                        _ => Some((node, new_closest_distance)),
+                    }
+                })
+                .unwrap()
+                .0
+                .to_owned(),
+        )
     }
 
-    pub fn remove_node(&mut self, target_node: GraphNode) -> Result<(), ()> {
+    /// Removes and returns a target node. The node must have the exact same bit
+    /// configuration in both x and y floats.
+    pub fn remove_node(&mut self, target_node: GraphNode) -> Option<GraphNode> {
         let index = self.nodes.iter().position(|&node| target_node == node);
         if let Some(index) = index {
-            self.nodes.remove(index);
-            Ok(())
+            Some(self.nodes.remove(index))
         } else {
-            Err(())
+            None
         }
     }
 
+    /// Removes all nodes.
     pub fn clear_nodes(&mut self) {
         self.nodes = Vec::new();
     }
 
+    /// Returns all nodes as tuple slices.
     fn nodes_coords(&self) -> Vec<[f64; 2]> {
         self.nodes.iter().map(|n| [n.x, n.y]).collect()
     }
 
+    /// Returns a Points object which stores Point data for presenting the Node
+    /// coordinates on the graph.
     pub fn nodes(&self) -> Points {
         Points::new(self.nodes_coords()).filled(true).radius(5.)
     }
 
-    fn key_handler(
+    /// Consumes keypress data to perform graph interactions.
+    fn keypress_handler(
         &mut self,
         plot_ui: &PlotUi,
         state: &mut InputState,
@@ -73,7 +85,7 @@ impl Canvas {
                 {
                     if let (
                         Ok(Pos2 { x, y }),
-                        Ok(GraphNode {
+                        Some(GraphNode {
                             x: node_x,
                             y: node_y,
                         }),
@@ -88,7 +100,7 @@ impl Canvas {
                         let node_to_pointer_dist =
                             ((node_pos.x - x).powi(2) + (node_pos.y - y).powi(2)).sqrt();
                         if node_to_pointer_dist as f64 <= POINTER_INTERACTION_RADIUS {
-                            self.remove_node(GraphNode::new(node_x, node_y)).ok();
+                            self.remove_node(GraphNode::new(node_x, node_y));
                         }
                     }
                 }
@@ -135,7 +147,7 @@ impl Canvas {
                     );
                 }
 
-                self.key_handler(plot_ui, state, pointer_coords, global_pointer_coords);
+                self.keypress_handler(plot_ui, state, pointer_coords, global_pointer_coords);
             });
         }
     }
