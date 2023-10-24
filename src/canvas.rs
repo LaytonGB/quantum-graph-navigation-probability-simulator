@@ -2,16 +2,17 @@ use egui::{InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
-use crate::{euclidean_dist, euclidean_squared, GraphNode, Tool};
+use crate::{euclidean_dist, euclidean_squared, GraphLine, GraphNode, Tool};
 
 const POINTER_INTERACTION_RADIUS: f64 = 16.0;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
-pub struct Canvas {
+pub struct Canvas<'a> {
     nodes: Vec<GraphNode>,
+    lines: Vec<GraphLine<'a>>,
 }
 
-impl Canvas {
+impl<'a> Canvas<'a> {
     /// Adds a node to the canvas.
     pub fn add_node(&mut self, node: impl Into<GraphNode>) {
         self.nodes.push(node.into());
@@ -118,7 +119,7 @@ impl Canvas {
     ) {
         match selected_tool {
             Tool::Select => (),
-            Tool::Node => self.add_node((pointer_coords.x, pointer_coords.y)),
+            Tool::Node => self.add_node(pointer_coords),
             Tool::Line => todo!(),
         }
     }
