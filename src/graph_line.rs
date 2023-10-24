@@ -1,6 +1,6 @@
 use crate::GraphNode;
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct GraphLine<'a> {
     pub start: &'a GraphNode,
     pub end: &'a GraphNode,

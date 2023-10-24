@@ -9,6 +9,8 @@ const POINTER_INTERACTION_RADIUS: f64 = 16.0;
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct Canvas<'a> {
     nodes: Vec<GraphNode>,
+
+    #[serde(skip)]
     lines: Vec<GraphLine<'a>>,
 }
 
