@@ -123,6 +123,12 @@ impl Canvas {
         }
     }
 
+    fn plot_context_menu(&self, ctx_ui: &mut Ui) {
+        if ctx_ui.button("Close this menu").clicked() {
+            ctx_ui.close_menu();
+        }
+    }
+
     fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool) {
         plot_ui.points(self.nodes());
 
@@ -149,6 +155,11 @@ impl Canvas {
                 self.keypress_handler(plot_ui, state, pointer_coords, global_pointer_coords);
             });
         }
+
+        plot_ui
+            .response()
+            .clone()
+            .context_menu(|ctx_ui| self.plot_context_menu(ctx_ui));
     }
 
     pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool) {
