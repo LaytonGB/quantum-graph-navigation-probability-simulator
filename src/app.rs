@@ -8,14 +8,14 @@ use crate::{Canvas, Tool};
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, Deserialize, Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct EframeApp<'a> {
-    canvas: Canvas<'a>,
+pub struct EframeApp {
+    canvas: Canvas,
 
     #[serde(skip)] // don't cache this tool for next startup
     selected_tool: Tool,
 }
 
-impl<'a> EframeApp<'a> {
+impl EframeApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -31,7 +31,7 @@ impl<'a> EframeApp<'a> {
     }
 }
 
-impl<'a> eframe::App for EframeApp<'a> {
+impl eframe::App for EframeApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);

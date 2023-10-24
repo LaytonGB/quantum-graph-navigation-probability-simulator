@@ -41,7 +41,10 @@ impl Into<GraphNode> for PlotPoint {
 impl Into<GraphNode> for Pos2 {
     fn into(self) -> GraphNode {
         let Pos2 { x, y } = self;
-        GraphNode { x: x as f64, y: y as f64 }
+        GraphNode {
+            x: x as f64,
+            y: y as f64,
+        }
     }
 }
 

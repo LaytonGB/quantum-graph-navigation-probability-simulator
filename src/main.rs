@@ -3,7 +3,7 @@
 
 // TODO add save button
 // TODO add load button
-// TODO make `line` tool select first node clicked and connect to second node
+// TODO enable GraphNode mutability so that lines can move to new node positions
 // clicked
 // - likely requires HashMap to lookup placed nodes
 // - HashMap requires Eq and Hash traits

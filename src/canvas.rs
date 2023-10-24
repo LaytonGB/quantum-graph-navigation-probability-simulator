@@ -1,5 +1,7 @@
+use std::rc::Rc;
+
 use egui::{InputState, Key, Modifiers, Pos2, Ui};
-use egui_plot::{Legend, Plot, PlotPoint, PlotUi, Points};
+use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
 use crate::{euclidean_dist, euclidean_squared, GraphLine, GraphNode, Tool};
@@ -7,21 +9,24 @@ use crate::{euclidean_dist, euclidean_squared, GraphLine, GraphNode, Tool};
 const POINTER_INTERACTION_RADIUS: f64 = 16.0;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
-pub struct Canvas<'a> {
-    nodes: Vec<GraphNode>,
+pub struct Canvas {
+    nodes: Vec<Rc<GraphNode>>,
 
     #[serde(skip)]
-    lines: Vec<GraphLine<'a>>,
+    lines: Vec<GraphLine>,
+
+    #[serde(skip)]
+    line_start: Option<Rc<GraphNode>>,
 }
 
-impl<'a> Canvas<'a> {
+impl Canvas {
     /// Adds a node to the canvas.
     pub fn add_node(&mut self, node: impl Into<GraphNode>) {
-        self.nodes.push(node.into());
+        self.nodes.push(Rc::new(node.into()));
     }
 
     /// Get node closest to given coordinates if a node exists.
-    pub fn find_closest_node(&mut self, coords: impl Into<GraphNode>) -> Option<GraphNode> {
+    pub fn find_closest_node(&self, coords: impl Into<GraphNode>) -> Option<Rc<GraphNode>> {
         if self.nodes.is_empty() {
             return None;
         }
@@ -31,7 +36,7 @@ impl<'a> Canvas<'a> {
             self.nodes
                 .iter()
                 .fold(None, |closest, node| {
-                    let new_closest_distance = euclidean_squared(node, &coords);
+                    let new_closest_distance = euclidean_squared(&**node, &coords);
                     match closest {
                         Some((_, current_distance)) if current_distance < new_closest_distance => {
                             closest
@@ -41,14 +46,14 @@ impl<'a> Canvas<'a> {
                 })
                 .unwrap()
                 .0
-                .to_owned(),
+                .clone(),
         )
     }
 
     /// Removes and returns a target node. The node must have the exact same bit
     /// configuration in both x and y floats.
-    pub fn remove_node(&mut self, target_node: GraphNode) -> Option<GraphNode> {
-        let index = self.nodes.iter().position(|&node| target_node == node);
+    pub fn remove_node(&mut self, target_node: GraphNode) -> Option<Rc<GraphNode>> {
+        let index = self.nodes.iter().position(|node| target_node == **node);
         if let Some(index) = index {
             Some(self.nodes.remove(index))
         } else {
@@ -72,6 +77,23 @@ impl<'a> Canvas<'a> {
         Points::new(self.nodes_coords()).filled(true).radius(5.)
     }
 
+    pub fn add_line(&mut self, pointer_coords: PlotPoint) {
+        if let Some(start_node) = &self.line_start {
+            if let Some(end_node) = self.find_closest_node(pointer_coords) {
+                if euclidean_dist(&**start_node, &*end_node) <= POINTER_INTERACTION_RADIUS {
+                    let line = GraphLine::new(start_node.clone(), end_node);
+                    if self.lines.iter().find(|l| **l == line).is_none() {
+                        self.lines.push(line);
+                    }
+                }
+            }
+        } else {
+            if let Some(start_node) = self.find_closest_node(pointer_coords) {
+                self.line_start = Some(start_node);
+            }
+        }
+    }
+
     /// Consumes keypress data to perform graph interactions.
     fn keypress_handler(
         &mut self,
@@ -85,16 +107,14 @@ impl<'a> Canvas<'a> {
                 Key::Backspace | Key::Delete
                     if plot_ui.response().hovered() && state.consume_key(Modifiers::NONE, key) =>
                 {
-                    if let (
-                        Ok(global_pointer_coords),
-                        Some(GraphNode {
-                            x: node_x,
-                            y: node_y,
-                        }),
-                    ) = (
+                    if let (Ok(global_pointer_coords), Some(counted_node)) = (
                         global_pointer_coords,
                         self.find_closest_node([pointer_coords.x, pointer_coords.y]),
                     ) {
+                        let GraphNode {
+                            x: node_x,
+                            y: node_y,
+                        } = *counted_node;
                         let node_pos = plot_ui.screen_from_plot(PlotPoint {
                             x: node_x,
                             y: node_y,
@@ -111,18 +131,11 @@ impl<'a> Canvas<'a> {
         }
     }
 
-    fn click_handler(
-        &mut self,
-        plot_ui: &PlotUi,
-        state: &mut InputState,
-        selected_tool: Tool,
-        pointer_coords: PlotPoint,
-        global_pointer_coords: Result<Pos2, ()>,
-    ) {
+    fn click_handler(&mut self, selected_tool: Tool, pointer_coords: PlotPoint) {
         match selected_tool {
             Tool::Select => (),
             Tool::Node => self.add_node(pointer_coords),
-            Tool::Line => todo!(),
+            Tool::Line => self.add_line(pointer_coords),
         }
     }
 
@@ -132,8 +145,15 @@ impl<'a> Canvas<'a> {
         }
     }
 
+    fn draw_lines(&self, plot_ui: &mut PlotUi) {
+        for line in &self.lines {
+            plot_ui.line(Line::new(line.clone()));
+        }
+    }
+
     fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool) {
         plot_ui.points(self.nodes());
+        self.draw_lines(plot_ui);
 
         let pointer_coords = plot_ui.pointer_coordinate();
         let global_pointer_coords =
@@ -146,13 +166,7 @@ impl<'a> Canvas<'a> {
         if let Some(pointer_coords) = pointer_coords {
             plot_ui.ctx().input_mut(|state| {
                 if plot_ui.response().clicked() {
-                    self.click_handler(
-                        plot_ui,
-                        state,
-                        selected_tool,
-                        pointer_coords,
-                        global_pointer_coords,
-                    );
+                    self.click_handler(selected_tool, pointer_coords);
                 }
 
                 self.keypress_handler(plot_ui, state, pointer_coords, global_pointer_coords);
