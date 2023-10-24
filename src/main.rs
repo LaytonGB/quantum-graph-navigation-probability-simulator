@@ -3,7 +3,6 @@
 
 // TODO add save button
 // TODO add load button
-// TODO make `select` tool open interaction menu
 // TODO make `line` tool select first node clicked and connect to second node
 // clicked
 // - likely requires HashMap to lookup placed nodes
@@ -12,7 +11,6 @@
 // - - problem solved in this crate by implementing those traits manually
 // - - C:\Users\layto\.cargo\registry\src\index.crates.io-6f17d22bba15001f\
 //   epaint-0.23.0\src\util\ordered_float.rs
-// TODO hover + `del` or `backspace` deletes hovered item
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
