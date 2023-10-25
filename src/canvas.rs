@@ -85,21 +85,26 @@ impl Canvas {
         Points::new(self.nodes_coords()).filled(true).radius(5.)
     }
 
-    pub fn add_line(&mut self, pointer_coords: PlotPoint) {
-        if let Some(start_node) = &self.line_start {
-            if let Some(end_node) = self.find_closest_node(pointer_coords) {
-                // FIXME use global distance - current distance is in graph units
-                if dbg!(euclidean_dist(&**start_node, &*end_node)) <= POINTER_INTERACTION_RADIUS {
-                    let line = GraphLine::new(start_node.clone(), end_node);
-                    if self.lines.iter().find(|l| **l == line).is_none() {
+    pub fn add_line(
+        &mut self,
+        plot_ui: &PlotUi,
+        pointer_coords: PlotPoint,
+        global_pointer_coords: Pos2,
+    ) {
+        if let Some(clicked_node) = self.find_closest_node(pointer_coords) {
+            let clicked_node_global_pos = plot_ui.screen_from_plot((*clicked_node).into());
+            if euclidean_dist(&clicked_node_global_pos, &global_pointer_coords.into())
+                <= POINTER_INTERACTION_RADIUS
+            {
+                if let Some(start_node) = &self.line_start {
+                    let line = GraphLine::new(start_node.clone(), clicked_node);
+                    if line.start != line.end && self.lines.iter().find(|l| **l == line).is_none() {
                         self.line_start = None;
                         self.lines.push(line);
                     }
+                } else {
+                    self.line_start = Some(clicked_node);
                 }
-            }
-        } else {
-            if let Some(start_node) = self.find_closest_node(pointer_coords) {
-                self.line_start = Some(start_node);
             }
         }
     }
@@ -141,11 +146,20 @@ impl Canvas {
         }
     }
 
-    fn click_handler(&mut self, selected_tool: Tool, pointer_coords: PlotPoint) {
-        match selected_tool {
-            Tool::Select => (),
-            Tool::Node => self.add_node(pointer_coords),
-            Tool::Line => self.add_line(pointer_coords),
+    fn click_handler(
+        &mut self,
+        selected_tool: Tool,
+        plot_ui: &PlotUi,
+        pointer_coords: PlotPoint,
+        global_pointer_coords: Result<Pos2, ()>,
+    ) {
+        match (selected_tool, global_pointer_coords) {
+            (Tool::Select, _) => (),
+            (Tool::Node, _) => self.add_node(pointer_coords),
+            (Tool::Line, Ok(global_pointer_coords)) => {
+                self.add_line(plot_ui, pointer_coords, global_pointer_coords)
+            }
+            _ => (), // TODO add appropriate error message
         }
     }
 
@@ -176,7 +190,12 @@ impl Canvas {
         if let Some(pointer_coords) = pointer_coords {
             plot_ui.ctx().input_mut(|state| {
                 if plot_ui.response().clicked() {
-                    self.click_handler(selected_tool, pointer_coords);
+                    self.click_handler(
+                        selected_tool,
+                        plot_ui,
+                        pointer_coords,
+                        global_pointer_coords,
+                    );
                 }
 
                 self.keypress_handler(plot_ui, state, pointer_coords, global_pointer_coords);

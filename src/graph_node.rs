@@ -53,3 +53,12 @@ impl Into<[f64; 2]> for GraphNode {
         [self.x, self.y]
     }
 }
+
+impl Into<PlotPoint> for GraphNode {
+    fn into(self) -> PlotPoint {
+        PlotPoint {
+            x: self.x,
+            y: self.y,
+        }
+    }
+}
