@@ -7,6 +7,8 @@
 // TODO enable GraphNode mutability so that lines can move to new node positions
 // TODO add "drag and drop" or "right-click -> move" with Select tool for graph
 // nodes clicked
+
+// GraphNode lookup problem
 // - likely requires HashMap to lookup placed nodes
 // - HashMap requires Eq and Hash traits
 // - floats do not have these traits
