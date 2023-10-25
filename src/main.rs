@@ -3,7 +3,6 @@
 
 // TODO add save button
 // TODO add load button
-// TODO enable GraphLine serialization
 // TODO enable GraphNode mutability so that lines can move to new node positions
 // TODO add "drag and drop" or "right-click -> move" with Select tool for graph
 // nodes clicked

@@ -4,7 +4,7 @@ use egui_plot::PlotPoints;
 
 use crate::GraphNode;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize, Debug)]
 pub struct GraphLine {
     pub start: Rc<GraphNode>,
     pub end: Rc<GraphNode>,

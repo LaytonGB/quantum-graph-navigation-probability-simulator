@@ -12,7 +12,6 @@ const POINTER_INTERACTION_RADIUS: f64 = 16.0;
 pub struct Canvas {
     nodes: Vec<Rc<GraphNode>>,
 
-    #[serde(skip)]
     lines: Vec<GraphLine>,
 
     #[serde(skip)]
