@@ -65,6 +65,15 @@ impl Canvas {
         self.nodes = Vec::new();
     }
 
+    pub fn clear_lines(&mut self) {
+        self.lines = Vec::new();
+    }
+
+    pub fn clear_all(&mut self) {
+        self.clear_lines();
+        self.clear_nodes();
+    }
+
     /// Returns all nodes as tuple slices.
     fn nodes_coords(&self) -> Vec<[f64; 2]> {
         self.nodes.iter().map(|n| [n.x, n.y]).collect()
@@ -82,6 +91,7 @@ impl Canvas {
                 if euclidean_dist(&**start_node, &*end_node) <= POINTER_INTERACTION_RADIUS {
                     let line = GraphLine::new(start_node.clone(), end_node);
                     if self.lines.iter().find(|l| **l == line).is_none() {
+                        self.line_start = None;
                         self.lines.push(line);
                     }
                 }

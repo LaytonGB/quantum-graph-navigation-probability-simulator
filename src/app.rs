@@ -72,7 +72,7 @@ impl eframe::App for EframeApp {
 
                 ui.menu_button("Canvas", |ui| {
                     if ui.button("Clear").clicked() {
-                        self.canvas.clear_nodes();
+                        self.canvas.clear_all();
                     }
                 });
                 ui.add_space(16.0);
