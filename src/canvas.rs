@@ -88,7 +88,8 @@ impl Canvas {
     pub fn add_line(&mut self, pointer_coords: PlotPoint) {
         if let Some(start_node) = &self.line_start {
             if let Some(end_node) = self.find_closest_node(pointer_coords) {
-                if euclidean_dist(&**start_node, &*end_node) <= POINTER_INTERACTION_RADIUS {
+                // FIXME use global distance - current distance is in graph units
+                if dbg!(euclidean_dist(&**start_node, &*end_node)) <= POINTER_INTERACTION_RADIUS {
                     let line = GraphLine::new(start_node.clone(), end_node);
                     if self.lines.iter().find(|l| **l == line).is_none() {
                         self.line_start = None;
