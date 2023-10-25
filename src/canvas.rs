@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use egui::{InputState, Key, Modifiers, Pos2, Ui};
+use egui::{Color32, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
@@ -92,7 +92,7 @@ impl Canvas {
         global_pointer_coords: Pos2,
     ) {
         if let Some(clicked_node) = self.find_closest_node(pointer_coords) {
-            let clicked_node_global_pos = plot_ui.screen_from_plot((*clicked_node).into());
+            let clicked_node_global_pos = plot_ui.screen_from_plot((*clicked_node).clone().into());
             if euclidean_dist(&clicked_node_global_pos, &global_pointer_coords.into())
                 <= POINTER_INTERACTION_RADIUS
             {
@@ -107,6 +107,21 @@ impl Canvas {
                 }
             }
         }
+    }
+
+    pub fn find_closest_line(&self, pointer_coords: PlotPoint) -> Option<&GraphLine> {
+        let point: GraphNode = pointer_coords.into();
+        self.lines
+            .iter()
+            .fold((f64::MAX, None), |(shortest_dist, closest_line), line| {
+                let dist = line.dist(&point);
+                if !dist.is_nan() && dist < shortest_dist {
+                    (dist, Some(line))
+                } else {
+                    (shortest_dist, closest_line)
+                }
+            })
+            .1
     }
 
     /// Consumes keypress data to perform graph interactions.
@@ -171,13 +186,13 @@ impl Canvas {
 
     fn draw_lines(&self, plot_ui: &mut PlotUi) {
         for line in &self.lines {
-            plot_ui.line(Line::new(line.clone()));
+            plot_ui.line(Line::new(line.clone()).color(Color32::BLUE));
         }
     }
 
     fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool) {
-        plot_ui.points(self.nodes());
         self.draw_lines(plot_ui);
+        plot_ui.points(self.nodes());
 
         let pointer_coords = plot_ui.pointer_coordinate();
         let global_pointer_coords =
