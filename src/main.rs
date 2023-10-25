@@ -3,8 +3,10 @@
 
 // TODO add save button
 // TODO add load button
+// TODO enable GraphLine serialization
 // TODO enable GraphNode mutability so that lines can move to new node positions
-// clicked
+// TODO add "drag and drop" or "right-click -> move" with Select tool for graph
+// nodes clicked
 // - likely requires HashMap to lookup placed nodes
 // - HashMap requires Eq and Hash traits
 // - floats do not have these traits
