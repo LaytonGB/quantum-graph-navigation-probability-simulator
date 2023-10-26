@@ -26,6 +26,10 @@ impl GraphLine {
         }
     }
 
+    pub fn is_attatched(&self, other: &GraphNode) -> bool {
+        &*self.start == other || &*self.end == other
+    }
+
     pub fn float_mul(self, rhs: f64) -> (GraphNode, GraphNode) {
         let (a, b) = ((*self.start).clone(), (*self.end).clone());
         (

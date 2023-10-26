@@ -54,6 +54,12 @@ impl Canvas {
     pub fn remove_node(&mut self, target_node: GraphNode) -> Option<Rc<GraphNode>> {
         let index = self.nodes.iter().position(|node| target_node == **node);
         if let Some(index) = index {
+            self.lines = self
+                .lines
+                .clone()
+                .into_iter()
+                .filter(|l| !l.is_attatched(&target_node))
+                .collect();
             Some(self.nodes.remove(index))
         } else {
             None
@@ -139,7 +145,7 @@ impl Canvas {
         }
     }
 
-    fn force_remove_node(
+    fn remove_node_if_pointer_within_range(
         &mut self,
         plot_ui: &PlotUi,
         node: Rc<GraphNode>,
@@ -152,7 +158,7 @@ impl Canvas {
         }
     }
 
-    fn force_remove_line(
+    fn remove_line_if_pointer_within_range(
         &mut self,
         plot_ui: &PlotUi,
         line: GraphLine,
@@ -178,25 +184,28 @@ impl Canvas {
             dbg!(self.find_closest_line_and_point_on_line(pointer_coords)),
         ) {
             (Ok(global_pointer_coords), None, Some((_, closest_point_on_line, closest_line))) => {
-                self.force_remove_line(
+                self.remove_line_if_pointer_within_range(
                     plot_ui,
                     closest_line,
                     closest_point_on_line,
                     global_pointer_coords,
                 )
             }
-            (Ok(global_pointer_coords), Some((_, closest_node)), None) => {
-                self.force_remove_node(plot_ui, closest_node, global_pointer_coords)
-            }
+            (Ok(global_pointer_coords), Some((_, closest_node)), None) => self
+                .remove_node_if_pointer_within_range(plot_ui, closest_node, global_pointer_coords),
             (
                 Ok(global_pointer_coords),
                 Some((closest_node_dist, closest_node)),
                 Some((closest_line_dist, closest_point_on_line, closest_line)),
             ) => {
                 if closest_node_dist / NODE_CLICK_PRIORITY_MULTIPLIER <= closest_line_dist {
-                    self.force_remove_node(plot_ui, closest_node, global_pointer_coords);
+                    self.remove_node_if_pointer_within_range(
+                        plot_ui,
+                        closest_node,
+                        global_pointer_coords,
+                    );
                 } else {
-                    self.force_remove_line(
+                    self.remove_line_if_pointer_within_range(
                         plot_ui,
                         closest_line,
                         closest_point_on_line,
