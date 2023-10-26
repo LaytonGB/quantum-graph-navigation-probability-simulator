@@ -4,9 +4,10 @@ use egui::{Color32, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
-use crate::{euclidean_dist, euclidean_squared, GraphLine, GraphNode, Tool};
-
-const POINTER_INTERACTION_RADIUS: f64 = 16.0;
+use crate::{
+    euclidean_dist, euclidean_squared, GraphLine, GraphNode, Tool, NODE_CLICK_PRIORITY_MULTIPLIER,
+    POINTER_INTERACTION_RADIUS,
+};
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct Canvas {
@@ -25,7 +26,10 @@ impl Canvas {
     }
 
     /// Get node closest to given coordinates if a node exists.
-    pub fn find_closest_node(&self, coords: impl Into<GraphNode>) -> Option<Rc<GraphNode>> {
+    pub fn find_closest_node_and_dist(
+        &self,
+        coords: impl Into<GraphNode>,
+    ) -> Option<(f64, Rc<GraphNode>)> {
         if self.nodes.is_empty() {
             return None;
         }
@@ -35,17 +39,13 @@ impl Canvas {
             self.nodes
                 .iter()
                 .fold(None, |closest, node| {
-                    let new_closest_distance = euclidean_squared(&**node, &coords);
+                    let dist = euclidean_squared(&**node, &coords);
                     match closest {
-                        Some((_, current_distance)) if current_distance < new_closest_distance => {
-                            closest
-                        }
-                        _ => Some((node, new_closest_distance)),
+                        Some((closest_dist, _)) if closest_dist < dist => closest,
+                        _ => Some((dist, (*node).clone())),
                     }
                 })
-                .unwrap()
-                .0
-                .clone(),
+                .unwrap(),
         )
     }
 
@@ -91,7 +91,7 @@ impl Canvas {
         pointer_coords: PlotPoint,
         global_pointer_coords: Pos2,
     ) {
-        if let Some(clicked_node) = self.find_closest_node(pointer_coords) {
+        if let Some((_, clicked_node)) = self.find_closest_node_and_dist(pointer_coords) {
             let clicked_node_global_pos = plot_ui.screen_from_plot((*clicked_node).clone().into());
             if euclidean_dist(&clicked_node_global_pos, &global_pointer_coords.into())
                 <= POINTER_INTERACTION_RADIUS
@@ -109,19 +109,103 @@ impl Canvas {
         }
     }
 
-    pub fn find_closest_line(&self, pointer_coords: PlotPoint) -> Option<&GraphLine> {
+    pub fn find_closest_line_and_point_on_line(
+        &self,
+        pointer_coords: PlotPoint,
+    ) -> Option<(f64, GraphNode, GraphLine)> {
         let point: GraphNode = pointer_coords.into();
-        self.lines
-            .iter()
-            .fold((f64::MAX, None), |(shortest_dist, closest_line), line| {
-                let dist = line.dist(&point);
-                if !dist.is_nan() && dist < shortest_dist {
-                    (dist, Some(line))
+        self.lines.iter().fold(None, |closest_details, line| {
+            let intersection_point = dbg!(line.closest_point_to_node(&point));
+            let dist = dbg!(intersection_point.dist(&point));
+            if let Some((closest_dist, closest_point, closest_line)) = closest_details {
+                // TODO see if `is_nan` is necessary
+                if !dist.is_nan() && dist < closest_dist {
+                    Some((dist, intersection_point, line.clone()))
                 } else {
-                    (shortest_dist, closest_line)
+                    Some((closest_dist, closest_point, closest_line))
                 }
-            })
-            .1
+            } else {
+                Some((dist, intersection_point, line.clone()))
+            }
+        })
+    }
+
+    pub fn remove_line(&mut self, target_line: GraphLine) -> Option<GraphLine> {
+        let index = self.lines.iter().position(|l| target_line == *l);
+        if let Some(index) = index {
+            Some(self.lines.remove(index))
+        } else {
+            None
+        }
+    }
+
+    fn force_remove_node(
+        &mut self,
+        plot_ui: &PlotUi,
+        node: Rc<GraphNode>,
+        global_pointer_coords: Pos2,
+    ) {
+        let node_pos = plot_ui.screen_from_plot((*node).clone().into());
+        let node_to_pointer_dist = euclidean_dist(&node_pos, &global_pointer_coords);
+        if node_to_pointer_dist <= POINTER_INTERACTION_RADIUS {
+            self.remove_node((*node).clone().into());
+        }
+    }
+
+    fn force_remove_line(
+        &mut self,
+        plot_ui: &PlotUi,
+        line: GraphLine,
+        point_on_line: GraphNode,
+        global_pointer_coords: Pos2,
+    ) {
+        let line_pos = dbg!(plot_ui.screen_from_plot(point_on_line.into()));
+        let line_to_pointer_dist = dbg!(euclidean_dist(&line_pos, &global_pointer_coords));
+        if line_to_pointer_dist <= POINTER_INTERACTION_RADIUS {
+            self.remove_line(line);
+        }
+    }
+
+    fn delete_operation(
+        &mut self,
+        plot_ui: &PlotUi,
+        pointer_coords: PlotPoint,
+        global_pointer_coords: Result<Pos2, ()>,
+    ) {
+        match (
+            global_pointer_coords,
+            self.find_closest_node_and_dist(pointer_coords),
+            dbg!(self.find_closest_line_and_point_on_line(pointer_coords)),
+        ) {
+            (Ok(global_pointer_coords), None, Some((_, closest_point_on_line, closest_line))) => {
+                self.force_remove_line(
+                    plot_ui,
+                    closest_line,
+                    closest_point_on_line,
+                    global_pointer_coords,
+                )
+            }
+            (Ok(global_pointer_coords), Some((_, closest_node)), None) => {
+                self.force_remove_node(plot_ui, closest_node, global_pointer_coords)
+            }
+            (
+                Ok(global_pointer_coords),
+                Some((closest_node_dist, closest_node)),
+                Some((closest_line_dist, closest_point_on_line, closest_line)),
+            ) => {
+                if closest_node_dist / NODE_CLICK_PRIORITY_MULTIPLIER <= closest_line_dist {
+                    self.force_remove_node(plot_ui, closest_node, global_pointer_coords);
+                } else {
+                    self.force_remove_line(
+                        plot_ui,
+                        closest_line,
+                        closest_point_on_line,
+                        global_pointer_coords,
+                    )
+                }
+            }
+            _ => (),
+        };
     }
 
     /// Consumes keypress data to perform graph interactions.
@@ -137,24 +221,7 @@ impl Canvas {
                 Key::Backspace | Key::Delete
                     if plot_ui.response().hovered() && state.consume_key(Modifiers::NONE, key) =>
                 {
-                    if let (Ok(global_pointer_coords), Some(counted_node)) = (
-                        global_pointer_coords,
-                        self.find_closest_node([pointer_coords.x, pointer_coords.y]),
-                    ) {
-                        let GraphNode {
-                            x: node_x,
-                            y: node_y,
-                        } = *counted_node;
-                        let node_pos = plot_ui.screen_from_plot(PlotPoint {
-                            x: node_x,
-                            y: node_y,
-                        });
-                        let node_to_pointer_dist =
-                            euclidean_dist(&node_pos, &global_pointer_coords);
-                        if node_to_pointer_dist <= POINTER_INTERACTION_RADIUS {
-                            self.remove_node(GraphNode::new(node_x, node_y));
-                        }
-                    }
+                    self.delete_operation(plot_ui, pointer_coords, global_pointer_coords)
                 }
                 _ => (),
             }

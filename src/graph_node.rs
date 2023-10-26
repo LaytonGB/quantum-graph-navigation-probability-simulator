@@ -15,6 +15,18 @@ impl GraphNode {
     pub fn dot(&self, other: &Self) -> f64 {
         (self.x * other.x) + (self.y * other.y)
     }
+
+    pub fn float_mul(&self, rhs: f64) -> Self {
+        Self::new(self.x * rhs, self.y * rhs)
+    }
+
+    pub fn dist_squared(&self, other: &Self) -> f64 {
+        (self.x - other.x).powi(2) + (self.y - other.y).powi(2)
+    }
+
+    pub fn dist(&self, other: &Self) -> f64 {
+        self.dist_squared(other).sqrt()
+    }
 }
 
 // TODO borrow, don't consume

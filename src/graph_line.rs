@@ -26,15 +26,25 @@ impl GraphLine {
         }
     }
 
-    pub fn dist(&self, point: &GraphNode) -> f64 {
-        let l = self.len_squared();
-        let u = (*self.start).clone() - (*self.end).clone();
-        let t = (point.clone() - (*self.end).clone()).dot(&u) / l;
-        let t = 0_f64.max(1_f64.min(t));
-        GraphLine::dist_squared(
-            point.clone(),
-            GraphNode::new(self.start.x + t * u.x, self.start.y + t * u.y),
+    pub fn float_mul(self, rhs: f64) -> (GraphNode, GraphNode) {
+        let (a, b) = ((*self.start).clone(), (*self.end).clone());
+        (
+            GraphNode::new(a.x * rhs, a.y * rhs),
+            GraphNode::new(b.x * rhs, b.y * rhs),
         )
+    }
+
+    pub fn closest_point_to_node(&self, p: &GraphNode) -> GraphNode {
+        let (a, b) = ((*self.start).clone(), (*self.end).clone());
+        let ab = b - a.clone();
+        let ap = (*p).clone() - a.clone();
+        let ax = ab.float_mul(ap.dot(&ab) / ab.dot(&ab));
+        a + ax
+    }
+
+    pub fn distance_to_node(&self, p: &GraphNode) -> f64 {
+        let n = self.closest_point_to_node(p);
+        n.dist(p)
     }
 
     pub fn dist_squared(a: GraphNode, b: GraphNode) -> f64 {
@@ -42,7 +52,7 @@ impl GraphLine {
     }
 
     pub fn len_squared(&self) -> f64 {
-        Self::dist_squared((*self.start).clone(), (*self.end).clone())
+        (self.start.x - self.end.x).powi(2) + (self.start.y - self.end.y).powi(2)
     }
 
     pub fn len(&self) -> f64 {
