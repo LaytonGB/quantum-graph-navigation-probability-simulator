@@ -1,7 +1,9 @@
 // TODO clone the egui_demo_lib from https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/widget_gallery.rs
 
-use egui::panel::Side;
+use eframe::Frame;
+use egui::{panel::Side, Ui};
 use serde::{Deserialize, Serialize};
+use wfd::DialogParams;
 
 use crate::{Canvas, Tool};
 
@@ -28,6 +30,63 @@ impl EframeApp {
         }
 
         Default::default()
+    }
+}
+
+fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    {
+        // TODO get this working for other OS's
+        #[cfg(target_os = "windows")]
+        {
+            if ui.button("Save").clicked() {
+                ui.close_menu();
+
+                let dialog_result = wfd::save_dialog(DialogParams {
+                    default_extension: "json",
+                    file_types: vec![("JSON Files", "*.json")],
+                    title: "Select a save location",
+                    file_name: "graph.json",
+                    ..Default::default()
+                });
+                if let Ok(dialog_result) = dialog_result {
+                    std::fs::write(
+                        dialog_result.selected_file_path,
+                        serde_json::to_string(&app.canvas).unwrap(),
+                    )
+                    .ok();
+                }
+            }
+            if ui.button("Load").clicked() {
+                ui.close_menu();
+
+                let dialog_result = wfd::open_dialog(DialogParams {
+                    file_types: vec![("JSON Files", "*.json")],
+                    title: "Select a file to open",
+                    ..Default::default()
+                });
+                if let Ok(dialog_result) = dialog_result {
+                    if let Ok(file) = std::fs::read(dialog_result.selected_file_path) {
+                        if let Ok(c) = serde_json::from_slice::<Canvas>(file.as_slice()) {
+                            app.canvas = c;
+                        }
+                    }
+                }
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            explorer_program_name = Some("open");
+        }
+        #[cfg(target_os = "linux")]
+        {
+            explorer_program_name = Some("xdg-open");
+        }
+    }
+    if ui.button("Quit").clicked() {
+        ui.close_menu();
+
+        _frame.close();
     }
 }
 
@@ -62,11 +121,7 @@ impl eframe::App for EframeApp {
             egui::menu::bar(ui, |ui| {
                 #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
                 {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("Quit").clicked() {
-                            _frame.close();
-                        }
-                    });
+                    ui.menu_button("File", |ui| file_menu(self, ui, _frame));
                     ui.add_space(16.0);
                 }
 

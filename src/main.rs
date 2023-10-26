@@ -1,11 +1,11 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-// TODO add save button
-// TODO add load button
 // TODO enable GraphNode mutability so that lines can move to new node positions
 // TODO add "drag and drop" or "right-click -> move" with Select tool for graph
 // nodes clicked
+// TODO clean all imports/exports
+// TODO add a snap setting
 
 // GraphNode lookup problem
 // - likely requires HashMap to lookup placed nodes
