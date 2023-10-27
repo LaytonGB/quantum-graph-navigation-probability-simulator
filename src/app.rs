@@ -5,13 +5,15 @@ use egui::{panel::Side, Ui};
 use serde::{Deserialize, Serialize};
 use wfd::DialogParams;
 
-use crate::{Canvas, Tool};
+use crate::{graph_settings::CanvasSettings, Canvas, Tool};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, Deserialize, Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
     canvas: Canvas,
+
+    graph_settings: CanvasSettings,
 
     #[serde(skip)] // don't cache this tool for next startup
     selected_tool: Tool,
@@ -52,7 +54,7 @@ fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
                 if let Ok(dialog_result) = dialog_result {
                     std::fs::write(
                         dialog_result.selected_file_path,
-                        serde_json::to_string(&app.canvas).unwrap(),
+                        serde_json::to_string(app).unwrap(),
                     )
                     .ok();
                 }
@@ -67,8 +69,8 @@ fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
                 });
                 if let Ok(dialog_result) = dialog_result {
                     if let Ok(file) = std::fs::read(dialog_result.selected_file_path) {
-                        if let Ok(c) = serde_json::from_slice::<Canvas>(file.as_slice()) {
-                            app.canvas = c;
+                        if let Ok(c) = serde_json::from_slice::<EframeApp>(file.as_slice()) {
+                            *app = c;
                         }
                     }
                 }
@@ -125,18 +127,14 @@ impl eframe::App for EframeApp {
                     ui.add_space(16.0);
                 }
 
-                ui.menu_button("Canvas", |ui| {
-                    if ui.button("Clear").clicked() {
-                        self.canvas.clear_all();
-                    }
-                });
+                self.graph_settings.show(ui, &mut self.canvas);
                 ui.add_space(16.0);
 
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
 
-        egui::SidePanel::new(Side::Left, "left toolbar")
+        egui::SidePanel::new(Side::Left, "left_toolbar")
             .resizable(false)
             .exact_width(60.0)
             .show(ctx, |ui| {

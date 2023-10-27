@@ -5,6 +5,7 @@ mod canvas;
 mod constants;
 mod graph_line;
 mod graph_node;
+mod graph_settings;
 mod tool;
 mod utils;
 pub use app::EframeApp;

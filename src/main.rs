@@ -6,6 +6,8 @@
 // nodes clicked
 // TODO clean all imports/exports
 // TODO add a snap setting
+// TODO add a right-panel for setting simulation mode (linear / quantum)
+// TODO add code for a linear random walk
 
 // GraphNode lookup problem
 // - likely requires HashMap to lookup placed nodes
