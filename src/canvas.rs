@@ -25,11 +25,17 @@ impl Canvas {
         let node: GraphNode = node.into();
         let rounded_node = node.round_to(snap);
         if let Some(rounded_node) = rounded_node {
-            self.nodes.push(Rc::new(RefCell::new(rounded_node)));
-            Ok(())
-        } else {
-            Err(())
+            if self
+                .nodes
+                .iter()
+                .find(|n| n.borrow().clone() == rounded_node)
+                .is_none()
+            {
+                self.nodes.push(Rc::new(RefCell::new(rounded_node)));
+                return Ok(());
+            }
         }
+        Err(())
     }
 
     /// Get node closest to given coordinates if a node exists.
@@ -263,7 +269,8 @@ impl Canvas {
             (Tool::Select, _) => (),
             (Tool::Node, _) => {
                 if let Err(_) = self.add_node(pointer_coords, snap) {
-                    println!("Error: Node rounded badly during snap"); // TODO normalize errors
+                    // TODO normalize errors
+                    eprintln!("[{}:{}] Error: Node not created", file!(), line!());
                 }
             }
             (Tool::Line, Ok(global_pointer_coords)) => {

@@ -1,7 +1,8 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-// TODO stop duplicate nodes being placed (AFTER SNAP ROUNDING)
+// TODO clear first point of line when tool changed or Esc pressed
+// TODO add faint line that follows mouse when first part of line is placed
 // TODO enable GraphNode mutability so that lines can move to new node positions
 // TODO add "drag and drop" or "right-click -> move" with Select tool for graph
 // nodes clicked
