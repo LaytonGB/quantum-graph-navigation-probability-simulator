@@ -1,6 +1,8 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+// FIXME stop nodes overlapping when moved
+// TODO snap node moving when Esc pressed
 // TODO fix GraphNode mutability so that lines follow moving nodes
 // TODO add "drag and drop" or "right-click -> move" with Select tool for graph
 // nodes clicked

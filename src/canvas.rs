@@ -46,12 +46,19 @@ impl Canvas {
         plot_ui: &PlotUi,
         pointer_coords: PlotPoint,
         global_pointer_coords: Pos2,
+        snap: Snap,
     ) {
-        if let Some((_, node)) = self.find_closest_node_and_dist(pointer_coords) {
-            let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
-            let pointer_to_node_dist = euclidean_dist(&global_pointer_coords, &node_pos);
-            if pointer_to_node_dist <= POINTER_INTERACTION_RADIUS {
-                self.node_being_moved = Some(node);
+        if let Some(node_being_moved) = self.node_being_moved.take() {
+            let mut node = node_being_moved.borrow_mut();
+            let backup_node = node.clone();
+            *node = node.clone().round_to(snap).unwrap_or(backup_node);
+        } else {
+            if let Some((_, node)) = self.find_closest_node_and_dist(pointer_coords) {
+                let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
+                let pointer_to_node_dist = euclidean_dist(&global_pointer_coords, &node_pos);
+                if pointer_to_node_dist <= POINTER_INTERACTION_RADIUS {
+                    self.node_being_moved = Some(node);
+                }
             }
         }
     }
@@ -286,7 +293,7 @@ impl Canvas {
     ) {
         match (selected_tool, global_pointer_coords) {
             (Tool::Select, Ok(global_pointer_coords)) => {
-                self.move_node(plot_ui, pointer_coords, global_pointer_coords)
+                self.move_node(plot_ui, pointer_coords, global_pointer_coords, snap)
             }
             (Tool::Node, _) => {
                 if self.add_node(pointer_coords, snap).is_err() {
