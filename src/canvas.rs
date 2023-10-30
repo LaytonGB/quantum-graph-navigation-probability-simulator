@@ -17,6 +17,9 @@ pub struct Canvas {
 
     #[serde(skip)]
     line_start: Option<Rc<RefCell<GraphNode>>>,
+
+    #[serde(skip)]
+    node_being_moved: Option<Rc<RefCell<GraphNode>>>,
 }
 
 impl Canvas {
@@ -36,6 +39,21 @@ impl Canvas {
             }
         }
         Err(())
+    }
+
+    fn move_node(
+        &mut self,
+        plot_ui: &PlotUi,
+        pointer_coords: PlotPoint,
+        global_pointer_coords: Pos2,
+    ) {
+        if let Some((_, node)) = self.find_closest_node_and_dist(pointer_coords) {
+            let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
+            let pointer_to_node_dist = euclidean_dist(&global_pointer_coords, &node_pos);
+            if pointer_to_node_dist <= POINTER_INTERACTION_RADIUS {
+                self.node_being_moved = Some(node);
+            }
+        }
     }
 
     /// Get node closest to given coordinates if a node exists.
@@ -141,8 +159,8 @@ impl Canvas {
     ) -> Option<(f64, GraphNode, GraphLine)> {
         let point: GraphNode = pointer_coords.into();
         self.lines.iter().fold(None, |closest_details, line| {
-            let intersection_point = dbg!(line.closest_point_to_node(&point));
-            let dist = dbg!(intersection_point.dist(&point));
+            let intersection_point = line.closest_point_to_node(&point);
+            let dist = intersection_point.dist(&point);
             if let Some((closest_dist, closest_point, closest_line)) = closest_details {
                 // TODO see if `is_nan` is necessary
                 if !dist.is_nan() && dist < closest_dist {
@@ -185,14 +203,14 @@ impl Canvas {
         point_on_line: GraphNode,
         global_pointer_coords: Pos2,
     ) {
-        let line_pos = dbg!(plot_ui.screen_from_plot(point_on_line.into()));
+        let line_pos = plot_ui.screen_from_plot(point_on_line.into());
         let line_to_pointer_dist = dbg!(euclidean_dist(&line_pos, &global_pointer_coords));
         if line_to_pointer_dist <= POINTER_INTERACTION_RADIUS {
             self.remove_line(line);
         }
     }
 
-    fn delete_operation(
+    fn delete_closest_to_pointer(
         &mut self,
         plot_ui: &PlotUi,
         pointer_coords: PlotPoint,
@@ -247,11 +265,11 @@ impl Canvas {
     ) {
         for key in state.keys_down.clone() {
             match key {
-                Key::Escape if self.line_start.is_some() => self.line_start = None,
+                Key::Escape => self.reset_values(),
                 Key::Backspace | Key::Delete
                     if plot_ui.response().hovered() && state.consume_key(Modifiers::NONE, key) =>
                 {
-                    self.delete_operation(plot_ui, pointer_coords, global_pointer_coords)
+                    self.delete_closest_to_pointer(plot_ui, pointer_coords, global_pointer_coords)
                 }
                 _ => (),
             }
@@ -267,9 +285,11 @@ impl Canvas {
         snap: Snap,
     ) {
         match (selected_tool, global_pointer_coords) {
-            (Tool::Select, _) => (),
+            (Tool::Select, Ok(global_pointer_coords)) => {
+                self.move_node(plot_ui, pointer_coords, global_pointer_coords)
+            }
             (Tool::Node, _) => {
-                if let Err(_) = self.add_node(pointer_coords, snap) {
+                if self.add_node(pointer_coords, snap).is_err() {
                     // TODO normalize errors
                     eprintln!("[{}:{}] Error: Node not created", file!(), line!());
                 }
@@ -297,9 +317,7 @@ impl Canvas {
         self.draw_lines(plot_ui);
         plot_ui.points(self.nodes());
 
-        if self.line_start.is_some() && selected_tool != Tool::Line {
-            self.line_start = None;
-        }
+        self.reset_values_by_tool(selected_tool);
 
         let pointer_coords = plot_ui.pointer_coordinate();
         let global_pointer_coords =
@@ -319,6 +337,12 @@ impl Canvas {
                     ])
                     .color(Color32::LIGHT_BLUE),
                 );
+            }
+
+            if let Some(start) = self.node_being_moved.clone() {
+                let mut start = start.as_ref().borrow_mut();
+                start.x = pointer_coords.x;
+                start.y = pointer_coords.y;
             }
 
             plot_ui.ctx().input_mut(|state| {
@@ -347,5 +371,20 @@ impl Canvas {
             .data_aspect(1.0)
             .legend(Legend::default())
             .show(ui, |plot_ui| self.plot_show(plot_ui, selected_tool, snap));
+    }
+
+    fn reset_values_by_tool(&mut self, selected_tool: Tool) {
+        if selected_tool != Tool::Line {
+            self.line_start = None;
+        }
+
+        if selected_tool != Tool::Select {
+            self.node_being_moved = None;
+        }
+    }
+
+    fn reset_values(&mut self) {
+        self.line_start = None;
+        self.node_being_moved = None;
     }
 }
