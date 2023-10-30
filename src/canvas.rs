@@ -247,6 +247,7 @@ impl Canvas {
     ) {
         for key in state.keys_down.clone() {
             match key {
+                Key::Escape if self.line_start.is_some() => self.line_start = None,
                 Key::Backspace | Key::Delete
                     if plot_ui.response().hovered() && state.consume_key(Modifiers::NONE, key) =>
                 {
@@ -295,6 +296,10 @@ impl Canvas {
     fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool, snap: Snap) {
         self.draw_lines(plot_ui);
         plot_ui.points(self.nodes());
+
+        if self.line_start.is_some() && selected_tool != Tool::Line {
+            self.line_start = None;
+        }
 
         let pointer_coords = plot_ui.pointer_coordinate();
         let global_pointer_coords =
