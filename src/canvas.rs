@@ -2,27 +2,45 @@ use std::{cell::RefCell, rc::Rc};
 
 use egui::{Color32, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::{
     euclidean_dist, euclidean_squared, graph_settings::Snap, GraphLine, GraphNode, Tool,
     NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
 };
 
-#[derive(Clone, Default, Deserialize, Serialize)]
+#[derive(Clone, Default)]
 pub struct Canvas {
     nodes: Vec<Rc<RefCell<GraphNode>>>,
 
     lines: Vec<GraphLine>,
 
-    #[serde(skip)]
     line_start: Option<Rc<RefCell<GraphNode>>>,
 
-    #[serde(skip)]
     node_being_moved_and_origin: Option<(Rc<RefCell<GraphNode>>, GraphNode)>,
 }
 
 impl Canvas {
+    fn new(nodes: Vec<Rc<RefCell<GraphNode>>>, lines: Option<Vec<(usize, usize)>>) -> Self {
+        let lines = lines
+            .and_then(|lines| {
+                Some(
+                    lines
+                        .into_iter()
+                        .map(|(a, b)| GraphLine::new(nodes[a].clone(), nodes[b].clone()))
+                        .collect(),
+                )
+            })
+            .unwrap_or(Vec::new());
+
+        Self {
+            nodes,
+            lines,
+            line_start: None,
+            node_being_moved_and_origin: None,
+        }
+    }
+
     /// Adds a node to the canvas.
     pub fn add_node(&mut self, node: impl Into<GraphNode>, snap: Snap) -> Result<(), ()> {
         let node: GraphNode = node.into();
@@ -397,5 +415,67 @@ impl Canvas {
             let mut node = node_being_moved.borrow_mut();
             *node = original_node;
         }
+    }
+}
+
+impl Serialize for Canvas {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_struct("Canvas", 2)?;
+        state.serialize_field("nodes", &self.nodes)?;
+
+        let serializable_lines: Vec<(usize, usize)> = self
+            .lines
+            .iter()
+            .map(|l| {
+                self.nodes
+                    .iter()
+                    .enumerate()
+                    .fold((None, None), |(start, end), (i, n)| {
+                        if start.is_none() {
+                            if l.start == *n {
+                                return (Some(i), end);
+                            }
+                        }
+                        if end.is_none() {
+                            if l.end == *n {
+                                return (start, Some(i));
+                            }
+                        }
+                        (start, end)
+                    })
+            })
+            .filter_map(|(a, b)| {
+                if let (Some(a), Some(b)) = (a, b) {
+                    Some((a, b))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        state.serialize_field("lines", &serializable_lines)?;
+
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Canvas {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct CanvasParts {
+            nodes: Vec<Rc<RefCell<GraphNode>>>,
+            lines: Vec<(usize, usize)>,
+        }
+
+        let mut parts: CanvasParts = Deserialize::deserialize(deserializer)?;
+
+        let canvas = Canvas::new(parts.nodes, Some(parts.lines));
+
+        Ok(canvas)
     }
 }

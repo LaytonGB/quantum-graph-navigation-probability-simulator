@@ -2,7 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 // FIXME stop nodes overlapping when moved
-// FIXME loading from json does not maintain pointers in Lines
 // TODO change Select to Move
 // TODO right-click -> Add Node by coordinates
 // TODO clean all imports/exports
