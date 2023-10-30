@@ -5,8 +5,8 @@ use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    euclidean_dist, euclidean_squared, GraphLine, GraphNode, Tool, NODE_CLICK_PRIORITY_MULTIPLIER,
-    POINTER_INTERACTION_RADIUS,
+    euclidean_dist, euclidean_squared, graph_settings::Snap, GraphLine, GraphNode, Tool,
+    NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
 };
 
 #[derive(Clone, Default, Deserialize, Serialize)]
@@ -21,8 +21,15 @@ pub struct Canvas {
 
 impl Canvas {
     /// Adds a node to the canvas.
-    pub fn add_node(&mut self, node: impl Into<GraphNode>) {
-        self.nodes.push(Rc::new(node.into()));
+    pub fn add_node(&mut self, node: impl Into<GraphNode>, snap: Snap) -> Result<(), ()> {
+        let node: GraphNode = node.into();
+        let rounded_node = node.round_to(snap);
+        if let Some(rounded_node) = rounded_node {
+            self.nodes.push(Rc::new(rounded_node));
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     /// Get node closest to given coordinates if a node exists.
@@ -243,10 +250,15 @@ impl Canvas {
         plot_ui: &PlotUi,
         pointer_coords: PlotPoint,
         global_pointer_coords: Result<Pos2, ()>,
+        snap: Snap,
     ) {
         match (selected_tool, global_pointer_coords) {
             (Tool::Select, _) => (),
-            (Tool::Node, _) => self.add_node(pointer_coords),
+            (Tool::Node, _) => {
+                if let Err(_) = self.add_node(pointer_coords, snap) {
+                    println!("Error: Node rounded badly during snap"); // TODO normalize errors
+                }
+            }
             (Tool::Line, Ok(global_pointer_coords)) => {
                 self.add_line(plot_ui, pointer_coords, global_pointer_coords)
             }
@@ -266,7 +278,7 @@ impl Canvas {
         }
     }
 
-    fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool) {
+    fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool, snap: Snap) {
         self.draw_lines(plot_ui);
         plot_ui.points(self.nodes());
 
@@ -286,6 +298,7 @@ impl Canvas {
                         plot_ui,
                         pointer_coords,
                         global_pointer_coords,
+                        snap,
                     );
                 }
 
@@ -299,10 +312,10 @@ impl Canvas {
             .context_menu(|ctx_ui| self.plot_context_menu(ctx_ui));
     }
 
-    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool) {
+    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool, snap: Snap) {
         Plot::new("canvas")
             .data_aspect(1.0)
             .legend(Legend::default())
-            .show(ui, |plot_ui| self.plot_show(plot_ui, selected_tool));
+            .show(ui, |plot_ui| self.plot_show(plot_ui, selected_tool, snap));
     }
 }

@@ -1,6 +1,8 @@
 use egui::Pos2;
 use egui_plot::PlotPoint;
 
+use crate::graph_settings::Snap;
+
 #[derive(Clone, PartialEq, PartialOrd, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphNode {
     pub x: f64,
@@ -26,6 +28,29 @@ impl GraphNode {
 
     pub fn dist(&self, other: &Self) -> f64 {
         self.dist_squared(other).sqrt()
+    }
+
+    pub fn round_to(self, snap: Snap) -> Option<Self> {
+        match snap {
+            Snap::None => Some(self),
+            Snap::Half => {
+                let (x, y) = ((self.x * 2.0).round() / 2.0, (self.y * 2.0).round() / 2.0);
+                if x < self.x - 1.0 || y < self.y - 1.0 {
+                    None
+                } else {
+                    Some(Self::new(x, y))
+                }
+            }
+            Snap::One => Some(Self::new(self.x.round(), self.y.round())),
+            Snap::Five => Some(Self::new(
+                (self.x / 5.0).round() * 5.0,
+                (self.y / 5.0).round() * 5.0,
+            )),
+            Snap::Ten => Some(Self::new(
+                (self.x / 10.0).round() * 10.0,
+                (self.y / 10.0).round() * 10.0,
+            )),
+        }
     }
 }
 

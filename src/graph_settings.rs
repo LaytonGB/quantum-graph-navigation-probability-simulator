@@ -4,9 +4,9 @@ use crate::Canvas;
 
 #[derive(Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize, Debug)]
 pub enum Snap {
+    #[default]
     None,
     Half,
-    #[default]
     One,
     Five,
     Ten,
@@ -41,15 +41,13 @@ impl CanvasSettings {
         });
     }
 
-    pub fn show(&mut self, ui: &mut Ui, canvas: &mut Canvas) {
+    pub fn canvas_menu(&mut self, ui: &mut Ui, canvas: &mut Canvas) {
         ui.menu_button("Canvas", |ui| {
             self.draw_snap_options(ui);
 
             if ui.button("Clear").clicked() {
                 canvas.clear_all();
             }
-
-            ui.shrink_width_to_current();
         });
     }
 }

@@ -127,7 +127,7 @@ impl eframe::App for EframeApp {
                     ui.add_space(16.0);
                 }
 
-                self.graph_settings.show(ui, &mut self.canvas);
+                self.graph_settings.canvas_menu(ui, &mut self.canvas);
                 ui.add_space(16.0);
 
                 egui::widgets::global_dark_light_mode_buttons(ui);
@@ -144,7 +144,10 @@ impl eframe::App for EframeApp {
                 }
             });
 
-        egui::CentralPanel::default().show(ctx, |ui| self.canvas.show(ui, self.selected_tool));
+        egui::CentralPanel::default().show(ctx, |ui| {
+            self.canvas
+                .show(ui, self.selected_tool, self.graph_settings.snap)
+        });
     }
 }
 
