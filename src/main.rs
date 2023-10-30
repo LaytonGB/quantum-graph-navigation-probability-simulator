@@ -18,8 +18,8 @@
 // - floats do not have these traits
 // - - problem solved in this crate by implementing those traits manually
 // - - C:\Users\layto\.cargo\registry\src\index.crates.io-6f17d22bba15001f\
-// - for now, will be searching coords from vec
 //   epaint-0.23.0\src\util\ordered_float.rs
+// - for now, will be searching coords from vec
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
