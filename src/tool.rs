@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Tool {
     #[default]
-    Select,
+    Move,
     Node,
     Line,
 }
@@ -14,7 +14,7 @@ pub enum Tool {
 impl Tool {
     pub fn name(&self) -> &'static str {
         match self {
-            Tool::Select => "Select",
+            Tool::Move => "Move",
             Tool::Node => "Node",
             Tool::Line => "Line",
         }

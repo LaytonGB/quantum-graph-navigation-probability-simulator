@@ -138,7 +138,7 @@ impl eframe::App for EframeApp {
             .resizable(false)
             .exact_width(60.0)
             .show(ctx, |ui| {
-                let mut tool_buttons: Vec<Tool> = vec![Tool::Select, Tool::Node, Tool::Line];
+                let mut tool_buttons: Vec<Tool> = vec![Tool::Move, Tool::Node, Tool::Line];
                 for tool in tool_buttons.iter_mut() {
                     tool.show(ui, &mut self.selected_tool);
                 }

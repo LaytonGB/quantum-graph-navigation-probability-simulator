@@ -311,7 +311,7 @@ impl Canvas {
         snap: Snap,
     ) {
         match (selected_tool, global_pointer_coords) {
-            (Tool::Select, Ok(global_pointer_coords)) => {
+            (Tool::Move, Ok(global_pointer_coords)) => {
                 self.move_node(plot_ui, pointer_coords, global_pointer_coords, snap)
             }
             (Tool::Node, _) => {
@@ -404,7 +404,7 @@ impl Canvas {
             self.line_start = None;
         }
 
-        if selected_tool != Tool::Select {
+        if selected_tool != Tool::Move {
             self.node_being_moved_and_origin = None;
         }
     }
