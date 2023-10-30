@@ -66,10 +66,21 @@ impl Canvas {
         global_pointer_coords: Pos2,
         snap: Snap,
     ) {
-        if let Some((node_being_moved, _)) = self.node_being_moved_and_origin.take() {
-            let mut node = node_being_moved.borrow_mut();
-            let backup_node = node.clone();
-            *node = node.clone().round_to(snap).unwrap_or(backup_node);
+        if let Some((node_being_moved, _)) = self.node_being_moved_and_origin.clone() {
+            let node = node_being_moved.borrow().clone();
+            if let Some(rounded_node) = node.round_to(snap) {
+                if !self
+                    .nodes
+                    .iter()
+                    .any(|n| n.borrow().clone() == rounded_node)
+                {
+                    let mut node = node_being_moved.borrow_mut();
+                    *node = rounded_node;
+                    self.node_being_moved_and_origin = None;
+                    return;
+                }
+            }
+            self.reset_moving_node_position();
         } else {
             if let Some((_, node)) = self.find_closest_node_and_dist(pointer_coords) {
                 let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
@@ -411,6 +422,10 @@ impl Canvas {
 
     fn reset_values(&mut self) {
         self.line_start = None;
+        self.reset_moving_node_position();
+    }
+
+    fn reset_moving_node_position(&mut self) {
         if let Some((node_being_moved, original_node)) = self.node_being_moved_and_origin.take() {
             let mut node = node_being_moved.borrow_mut();
             *node = original_node;
@@ -472,7 +487,7 @@ impl<'de> Deserialize<'de> for Canvas {
             lines: Vec<(usize, usize)>,
         }
 
-        let mut parts: CanvasParts = Deserialize::deserialize(deserializer)?;
+        let parts: CanvasParts = Deserialize::deserialize(deserializer)?;
 
         let canvas = Canvas::new(parts.nodes, Some(parts.lines));
 

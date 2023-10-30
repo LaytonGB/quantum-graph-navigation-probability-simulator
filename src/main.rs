@@ -1,11 +1,10 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-// FIXME stop nodes overlapping when moved
 // TODO right-click -> Add Node by coordinates
 // TODO clean all imports/exports
 // TODO add "add graph" setting under canvas (place graph without clearing
-// canvas
+// canvas)
 // TODO add a right-panel for setting simulation mode (linear / quantum)
 // TODO add code for a linear random walk
 
