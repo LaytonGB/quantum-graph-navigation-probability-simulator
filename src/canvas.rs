@@ -19,7 +19,7 @@ pub struct Canvas {
     line_start: Option<Rc<RefCell<GraphNode>>>,
 
     #[serde(skip)]
-    node_being_moved: Option<Rc<RefCell<GraphNode>>>,
+    node_being_moved_and_origin: Option<(Rc<RefCell<GraphNode>>, GraphNode)>,
 }
 
 impl Canvas {
@@ -48,7 +48,7 @@ impl Canvas {
         global_pointer_coords: Pos2,
         snap: Snap,
     ) {
-        if let Some(node_being_moved) = self.node_being_moved.take() {
+        if let Some((node_being_moved, _)) = self.node_being_moved_and_origin.take() {
             let mut node = node_being_moved.borrow_mut();
             let backup_node = node.clone();
             *node = node.clone().round_to(snap).unwrap_or(backup_node);
@@ -57,7 +57,8 @@ impl Canvas {
                 let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
                 let pointer_to_node_dist = euclidean_dist(&global_pointer_coords, &node_pos);
                 if pointer_to_node_dist <= POINTER_INTERACTION_RADIUS {
-                    self.node_being_moved = Some(node);
+                    let original_node = node.borrow().clone();
+                    self.node_being_moved_and_origin = Some((node, original_node));
                 }
             }
         }
@@ -346,7 +347,7 @@ impl Canvas {
                 );
             }
 
-            if let Some(start) = self.node_being_moved.clone() {
+            if let Some((start, _)) = self.node_being_moved_and_origin.clone() {
                 let mut start = start.as_ref().borrow_mut();
                 start.x = pointer_coords.x;
                 start.y = pointer_coords.y;
@@ -386,12 +387,15 @@ impl Canvas {
         }
 
         if selected_tool != Tool::Select {
-            self.node_being_moved = None;
+            self.node_being_moved_and_origin = None;
         }
     }
 
     fn reset_values(&mut self) {
         self.line_start = None;
-        self.node_being_moved = None;
+        if let Some((node_being_moved, original_node)) = self.node_being_moved_and_origin.take() {
+            let mut node = node_being_moved.borrow_mut();
+            *node = original_node;
+        }
     }
 }

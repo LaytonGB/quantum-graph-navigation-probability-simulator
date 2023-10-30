@@ -2,10 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 // FIXME stop nodes overlapping when moved
-// TODO snap node moving when Esc pressed
-// TODO fix GraphNode mutability so that lines follow moving nodes
-// TODO add "drag and drop" or "right-click -> move" with Select tool for graph
-// nodes clicked
+// FIXME loading from json does not maintain pointers in Lines
+// TODO change Select to Move
+// TODO right-click -> Add Node by coordinates
 // TODO clean all imports/exports
 // TODO add "add graph" setting under canvas (place graph without clearing
 // canvas
