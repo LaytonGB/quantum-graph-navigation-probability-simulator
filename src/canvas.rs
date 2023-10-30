@@ -5,8 +5,8 @@ use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::{
-    euclidean_dist, euclidean_squared, graph_settings::Snap, GraphLine, GraphNode, Tool,
-    NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
+    euclidean_dist, euclidean_squared, graph_settings::Snap, ContextMenuValues, GraphLine,
+    GraphNode, Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
 };
 
 #[derive(Clone, Default)]
@@ -18,6 +18,8 @@ pub struct Canvas {
     line_start: Option<Rc<RefCell<GraphNode>>>,
 
     node_being_moved_and_origin: Option<(Rc<RefCell<GraphNode>>, GraphNode)>,
+
+    context_menu_values: ContextMenuValues,
 }
 
 impl Canvas {
@@ -36,8 +38,7 @@ impl Canvas {
         Self {
             nodes,
             lines,
-            line_start: None,
-            node_being_moved_and_origin: None,
+            ..Default::default()
         }
     }
 
@@ -241,7 +242,7 @@ impl Canvas {
         global_pointer_coords: Pos2,
     ) {
         let line_pos = plot_ui.screen_from_plot(point_on_line.into());
-        let line_to_pointer_dist = dbg!(euclidean_dist(&line_pos, &global_pointer_coords));
+        let line_to_pointer_dist = euclidean_dist(&line_pos, &global_pointer_coords);
         if line_to_pointer_dist <= POINTER_INTERACTION_RADIUS {
             self.remove_line(line);
         }
@@ -256,7 +257,7 @@ impl Canvas {
         match (
             global_pointer_coords,
             self.find_closest_node_and_dist(pointer_coords),
-            dbg!(self.find_closest_line_and_point_on_line(pointer_coords)),
+            self.find_closest_line_and_point_on_line(pointer_coords),
         ) {
             (Ok(global_pointer_coords), None, Some((_, closest_point_on_line, closest_line))) => {
                 self.remove_line_if_pointer_within_range(
@@ -338,7 +339,30 @@ impl Canvas {
         }
     }
 
-    fn plot_context_menu(&self, ctx_ui: &mut Ui) {
+    fn plot_context_menu(&mut self, ctx_ui: &mut Ui) {
+        ctx_ui.menu_button("Add Node", |ui| {
+            ui.horizontal(|ui| {
+                ui.label("X:");
+                ui.text_edit_singleline(&mut self.context_menu_values.add_node.x);
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("Y:");
+                ui.text_edit_singleline(&mut self.context_menu_values.add_node.y);
+            });
+
+            if ui.button("Confirm").clicked() {
+                if let (Ok(x), Ok(y)) = (
+                    self.context_menu_values.add_node.x.parse(),
+                    self.context_menu_values.add_node.y.parse(),
+                ) {
+                    self.add_node(GraphNode::new(x, y), Snap::None).ok();
+                    self.context_menu_values.add_node.clear();
+                    ui.close_menu();
+                }
+            }
+        });
+
         if ctx_ui.button("Close this menu").clicked() {
             ctx_ui.close_menu();
         }
