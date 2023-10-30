@@ -310,6 +310,17 @@ impl Canvas {
             };
 
         if let Some(pointer_coords) = pointer_coords {
+            if let Some(start) = &self.line_start {
+                let start = start.borrow();
+                plot_ui.line(
+                    Line::new(vec![
+                        [start.x, start.y],
+                        [pointer_coords.x, pointer_coords.y],
+                    ])
+                    .color(Color32::LIGHT_BLUE),
+                );
+            }
+
             plot_ui.ctx().input_mut(|state| {
                 if plot_ui.response().clicked() {
                     self.click_handler(
