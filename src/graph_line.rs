@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use egui_plot::PlotPoints;
 
@@ -6,19 +6,19 @@ use crate::GraphNode;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct GraphLine {
-    pub start: Rc<GraphNode>,
-    pub end: Rc<GraphNode>,
+    pub start: Rc<RefCell<GraphNode>>,
+    pub end: Rc<RefCell<GraphNode>>,
 }
 
 impl GraphLine {
-    pub fn new(start_node: Rc<GraphNode>, end_node: Rc<GraphNode>) -> Self {
+    pub fn new(start_node: Rc<RefCell<GraphNode>>, end_node: Rc<RefCell<GraphNode>>) -> Self {
         Self {
             start: start_node,
             end: end_node,
         }
     }
 
-    pub fn other(&self, node: Rc<GraphNode>) -> Rc<GraphNode> {
+    pub fn other(&self, node: Rc<RefCell<GraphNode>>) -> Rc<RefCell<GraphNode>> {
         if node == self.start {
             self.end.clone()
         } else {
@@ -27,11 +27,11 @@ impl GraphLine {
     }
 
     pub fn is_attatched(&self, other: &GraphNode) -> bool {
-        &*self.start == other || &*self.end == other
+        self.start.borrow().clone() == *other || self.end.borrow().clone() == *other
     }
 
     pub fn float_mul(self, rhs: f64) -> (GraphNode, GraphNode) {
-        let (a, b) = ((*self.start).clone(), (*self.end).clone());
+        let (a, b) = (self.start.borrow().clone(), self.end.borrow().clone());
         (
             GraphNode::new(a.x * rhs, a.y * rhs),
             GraphNode::new(b.x * rhs, b.y * rhs),
@@ -39,7 +39,7 @@ impl GraphLine {
     }
 
     pub fn closest_point_to_node(&self, p: &GraphNode) -> GraphNode {
-        let (a, b) = ((*self.start).clone(), (*self.end).clone());
+        let (a, b) = (self.start.borrow().clone(), self.end.borrow().clone());
         let ab = b - a.clone();
         let ap = (*p).clone() - a.clone();
         let ax = ab.float_mul(ap.dot(&ab) / ab.dot(&ab));
@@ -56,7 +56,8 @@ impl GraphLine {
     }
 
     pub fn len_squared(&self) -> f64 {
-        (self.start.x - self.end.x).powi(2) + (self.start.y - self.end.y).powi(2)
+        let (a, b) = (self.start.borrow(), self.end.borrow());
+        (a.x - b.x).powi(2) + (a.y - b.y).powi(2)
     }
 
     pub fn len(&self) -> f64 {
@@ -78,8 +79,8 @@ impl Ord for GraphLine {
 
 impl PartialEq for GraphLine {
     fn eq(&self, other: &Self) -> bool {
-        Rc::<GraphNode>::ptr_eq(&self.start, &other.start)
-            && Rc::<GraphNode>::ptr_eq(&self.end, &other.end)
+        Rc::<RefCell<GraphNode>>::ptr_eq(&self.start, &other.start)
+            && Rc::<RefCell<GraphNode>>::ptr_eq(&self.end, &other.end)
     }
 }
 
@@ -87,6 +88,7 @@ impl Eq for GraphLine {}
 
 impl Into<PlotPoints> for GraphLine {
     fn into(self) -> PlotPoints {
-        vec![[self.start.x, self.start.y], [self.end.x, self.end.y]].into()
+        let (a, b) = (self.start.borrow(), self.end.borrow());
+        vec![[a.x, a.y], [b.x, b.y]].into()
     }
 }

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use egui::{Color32, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
@@ -11,12 +11,12 @@ use crate::{
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct Canvas {
-    nodes: Vec<Rc<GraphNode>>,
+    nodes: Vec<Rc<RefCell<GraphNode>>>,
 
     lines: Vec<GraphLine>,
 
     #[serde(skip)]
-    line_start: Option<Rc<GraphNode>>,
+    line_start: Option<Rc<RefCell<GraphNode>>>,
 }
 
 impl Canvas {
@@ -25,7 +25,7 @@ impl Canvas {
         let node: GraphNode = node.into();
         let rounded_node = node.round_to(snap);
         if let Some(rounded_node) = rounded_node {
-            self.nodes.push(Rc::new(rounded_node));
+            self.nodes.push(Rc::new(RefCell::new(rounded_node)));
             Ok(())
         } else {
             Err(())
@@ -36,7 +36,7 @@ impl Canvas {
     pub fn find_closest_node_and_dist(
         &self,
         coords: impl Into<GraphNode>,
-    ) -> Option<(f64, Rc<GraphNode>)> {
+    ) -> Option<(f64, Rc<RefCell<GraphNode>>)> {
         if self.nodes.is_empty() {
             return None;
         }
@@ -46,7 +46,7 @@ impl Canvas {
             self.nodes
                 .iter()
                 .fold(None, |closest, node| {
-                    let dist = euclidean_squared(&**node, &coords);
+                    let dist = euclidean_squared(&node.borrow().clone(), &coords);
                     match closest {
                         Some((closest_dist, _)) if closest_dist < dist => closest,
                         _ => Some((dist, (*node).clone())),
@@ -58,8 +58,11 @@ impl Canvas {
 
     /// Removes and returns a target node. The node must have the exact same bit
     /// configuration in both x and y floats.
-    pub fn remove_node(&mut self, target_node: GraphNode) -> Option<Rc<GraphNode>> {
-        let index = self.nodes.iter().position(|node| target_node == **node);
+    pub fn remove_node(&mut self, target_node: GraphNode) -> Option<Rc<RefCell<GraphNode>>> {
+        let index = self
+            .nodes
+            .iter()
+            .position(|node| &target_node == &node.borrow().clone());
         if let Some(index) = index {
             self.lines = self
                 .lines
@@ -89,13 +92,16 @@ impl Canvas {
 
     /// Returns all nodes as tuple slices.
     fn nodes_coords(&self) -> Vec<[f64; 2]> {
-        self.nodes.iter().map(|n| [n.x, n.y]).collect()
+        self.nodes
+            .iter()
+            .map(|n| [n.borrow().x, n.borrow().y])
+            .collect()
     }
 
     /// Returns a Points object which stores Point data for presenting the Node
     /// coordinates on the graph.
     pub fn nodes(&self) -> Points {
-        Points::new(self.nodes_coords()).filled(true).radius(5.)
+        Points::new(self.nodes_coords()).filled(true).radius(5.0)
     }
 
     pub fn add_line(
@@ -105,7 +111,8 @@ impl Canvas {
         global_pointer_coords: Pos2,
     ) {
         if let Some((_, clicked_node)) = self.find_closest_node_and_dist(pointer_coords) {
-            let clicked_node_global_pos = plot_ui.screen_from_plot((*clicked_node).clone().into());
+            let clicked_node_global_pos =
+                plot_ui.screen_from_plot(clicked_node.borrow().clone().into());
             if euclidean_dist(&clicked_node_global_pos, &global_pointer_coords.into())
                 <= POINTER_INTERACTION_RADIUS
             {
@@ -155,13 +162,13 @@ impl Canvas {
     fn remove_node_if_pointer_within_range(
         &mut self,
         plot_ui: &PlotUi,
-        node: Rc<GraphNode>,
+        node: Rc<RefCell<GraphNode>>,
         global_pointer_coords: Pos2,
     ) {
-        let node_pos = plot_ui.screen_from_plot((*node).clone().into());
+        let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
         let node_to_pointer_dist = euclidean_dist(&node_pos, &global_pointer_coords);
         if node_to_pointer_dist <= POINTER_INTERACTION_RADIUS {
-            self.remove_node((*node).clone().into());
+            self.remove_node(node.borrow().clone());
         }
     }
 
