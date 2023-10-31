@@ -142,6 +142,7 @@ impl eframe::App for EframeApp {
             for tool in tool_buttons.iter_mut() {
                 tool.show(ui, &mut self.selected_tool);
             }
+            // BUG: this line is needed, allows left-panel resizing
             ui.separator();
         });
 
