@@ -5,7 +5,7 @@ use egui::{panel::Side, Ui};
 use serde::{Deserialize, Serialize};
 use wfd::DialogParams;
 
-use crate::{graph_settings::CanvasSettings, Canvas, Tool};
+use crate::{graph_settings::CanvasSettings, Canvas, ComputationOptions, Tool};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, Deserialize, Serialize)]
@@ -14,6 +14,8 @@ pub struct EframeApp {
     canvas: Canvas,
 
     graph_settings: CanvasSettings,
+
+    computation_options: ComputationOptions,
 
     #[serde(skip)] // don't cache this tool for next startup
     selected_tool: Tool,
@@ -134,15 +136,25 @@ impl eframe::App for EframeApp {
             });
         });
 
-        egui::SidePanel::new(Side::Left, "left_toolbar")
-            .resizable(false)
-            .exact_width(60.0)
-            .show(ctx, |ui| {
-                let mut tool_buttons: Vec<Tool> = vec![Tool::Move, Tool::Node, Tool::Line];
-                for tool in tool_buttons.iter_mut() {
-                    tool.show(ui, &mut self.selected_tool);
-                }
-            });
+        egui::SidePanel::new(Side::Left, "left_toolbar").show(ctx, |ui| {
+            ui.heading("Tools");
+            let mut tool_buttons: Vec<Tool> = vec![Tool::Move, Tool::Node, Tool::Line];
+            for tool in tool_buttons.iter_mut() {
+                tool.show(ui, &mut self.selected_tool);
+            }
+        });
+
+        egui::SidePanel::new(Side::Right, "right_toolbar").show(ctx, |ui| {
+            ui.heading("Computation Style");
+            self.computation_options.show_style_buttons(ui);
+            ui.separator();
+
+            ui.heading(format!("{} Options", self.computation_options.style.name()));
+            self.computation_options.show_specific_options(ui);
+            ui.separator();
+
+            self.computation_options.show_generic_options(ui);
+        });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.canvas
