@@ -5,8 +5,8 @@ use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::{
-    euclidean_dist, euclidean_squared, graph_settings::Snap, ContextMenu, ContextMenuValues,
-    GraphLine, GraphNode, Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
+    euclidean_dist, graph_settings::Snap, ContextMenu, ContextMenuValues, GraphLine, GraphNode,
+    Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
 };
 
 #[derive(Clone, Default)]
@@ -108,7 +108,7 @@ impl Canvas {
             self.nodes
                 .iter()
                 .fold(None, |closest, node| {
-                    let dist = euclidean_squared(&node.borrow().clone(), &coords);
+                    let dist = euclidean_dist(&node.borrow().clone(), &coords);
                     match closest {
                         Some((closest_dist, _)) if closest_dist < dist => closest,
                         _ => Some((dist, (*node).clone())),
