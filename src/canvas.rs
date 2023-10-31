@@ -5,21 +5,21 @@ use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::{
-    euclidean_dist, euclidean_squared, graph_settings::Snap, ContextMenuValues, GraphLine,
-    GraphNode, Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
+    euclidean_dist, euclidean_squared, graph_settings::Snap, ContextMenu, ContextMenuValues,
+    GraphLine, GraphNode, Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
 };
 
 #[derive(Clone, Default)]
 pub struct Canvas {
-    nodes: Vec<Rc<RefCell<GraphNode>>>,
+    pub nodes: Vec<Rc<RefCell<GraphNode>>>,
 
-    lines: Vec<GraphLine>,
+    pub lines: Vec<GraphLine>,
 
-    line_start: Option<Rc<RefCell<GraphNode>>>,
+    pub line_start: Option<Rc<RefCell<GraphNode>>>,
 
-    node_being_moved_and_origin: Option<(Rc<RefCell<GraphNode>>, GraphNode)>,
+    pub node_being_moved_and_origin: Option<(Rc<RefCell<GraphNode>>, GraphNode)>,
 
-    context_menu_values: ContextMenuValues,
+    pub context_menu_values: ContextMenuValues,
 }
 
 impl Canvas {
@@ -339,35 +339,6 @@ impl Canvas {
         }
     }
 
-    fn plot_context_menu(&mut self, ctx_ui: &mut Ui) {
-        ctx_ui.menu_button("Add Node", |ui| {
-            ui.horizontal(|ui| {
-                ui.label("X:");
-                ui.text_edit_singleline(&mut self.context_menu_values.add_node.x);
-            });
-
-            ui.horizontal(|ui| {
-                ui.label("Y:");
-                ui.text_edit_singleline(&mut self.context_menu_values.add_node.y);
-            });
-
-            if ui.button("Confirm").clicked() {
-                if let (Ok(x), Ok(y)) = (
-                    self.context_menu_values.add_node.x.parse(),
-                    self.context_menu_values.add_node.y.parse(),
-                ) {
-                    self.add_node(GraphNode::new(x, y), Snap::None).ok();
-                    self.context_menu_values.add_node.clear();
-                    ui.close_menu();
-                }
-            }
-        });
-
-        if ctx_ui.button("Close this menu").clicked() {
-            ctx_ui.close_menu();
-        }
-    }
-
     fn draw_lines(&self, plot_ui: &mut PlotUi) {
         for line in &self.lines {
             plot_ui.line(Line::new(line.clone()).color(Color32::BLUE));
@@ -424,7 +395,7 @@ impl Canvas {
         plot_ui
             .response()
             .clone()
-            .context_menu(|ctx_ui| self.plot_context_menu(ctx_ui));
+            .context_menu(|ctx_ui| ContextMenu::plot_context_menu(self, ctx_ui));
     }
 
     pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool, snap: Snap) {
