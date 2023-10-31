@@ -4,7 +4,6 @@
 // TODO clean all imports/exports
 // TODO add "add graph" setting under canvas (place graph without clearing
 // canvas)
-// TODO add a right-panel for setting simulation mode (linear / quantum)
 // TODO add code for a linear random walk
 
 // GraphNode lookup problem
