@@ -142,6 +142,7 @@ impl eframe::App for EframeApp {
             for tool in tool_buttons.iter_mut() {
                 tool.show(ui, &mut self.selected_tool);
             }
+            ui.separator();
         });
 
         egui::SidePanel::new(Side::Right, "right_toolbar").show(ctx, |ui| {
@@ -153,6 +154,7 @@ impl eframe::App for EframeApp {
             self.computation_options.show_specific_options(ui);
             ui.separator();
 
+            ui.heading("Generic Options");
             self.computation_options.show_generic_options(ui);
         });
 
