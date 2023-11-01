@@ -5,8 +5,8 @@ use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::{
-    euclidean_dist, ContextMenu, ContextMenuValues, GraphLine, GraphNode, ModeOptions, Options,
-    Snap, Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
+    euclidean_dist, ContextMenu, ContextMenuValues, GraphLine, GraphNode, Mode, Options, Snap,
+    Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
 };
 
 #[derive(Clone, Default)]
@@ -349,8 +349,8 @@ impl Canvas {
     }
 
     fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool, options: &Options) {
-        let snap = if let ModeOptions::Edit(edit_options) = options.specific {
-            edit_options.snap
+        let snap = if options.mode == Mode::Edit {
+            options.specific.edit.snap
         } else {
             Snap::None
         };

@@ -1,7 +1,6 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-// FIXME persist mode option structs between mode changes
 // TODO move right-panel headers into respective function calls
 // TODO remove generic options when in edit mode
 // TODO add a windows panel that allows toggle of side panels

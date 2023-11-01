@@ -17,20 +17,15 @@ impl Options {
 
             if btn.clicked() {
                 self.mode = mode;
-                self.specific = match mode {
-                    Mode::Edit => ModeOptions::Edit(EditOptions::default()),
-                    Mode::Classical => ModeOptions::Classical(ClassicalOptions::default()),
-                    Mode::Quantum => ModeOptions::Quantum(QuantumOptions::default()),
-                }
             }
         }
     }
 
     pub fn show_specific_options(&mut self, ui: &mut Ui) {
-        match &mut self.specific {
-            ModeOptions::Edit(edit_options) => edit_options.draw_snap_options(ui),
-            ModeOptions::Classical(_classical_options) => {}
-            ModeOptions::Quantum(_quantum_options) => {}
+        match self.mode {
+            Mode::Edit => self.specific.edit.draw_snap_options(ui),
+            Mode::Classical => {}
+            Mode::Quantum => {}
         }
     }
 
@@ -73,17 +68,11 @@ impl Mode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum ModeOptions {
-    Edit(EditOptions),
-    Classical(ClassicalOptions),
-    Quantum(QuantumOptions),
-}
-
-impl Default for ModeOptions {
-    fn default() -> Self {
-        Self::Edit(EditOptions::default())
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+pub struct ModeOptions {
+    pub edit: EditOptions,
+    pub classical: ClassicalOptions,
+    pub quantum: QuantumOptions,
 }
 
 trait ModeOptionsShow {
