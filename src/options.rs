@@ -9,6 +9,7 @@ pub struct Options {
 
 impl Options {
     pub fn show_mode_buttons(&mut self, ui: &mut Ui) {
+        ui.heading("Computation Style");
         for mode in [Mode::Edit, Mode::Classical, Mode::Quantum] {
             let mut btn = ui.button(format!("{}", mode.name()));
             if mode == self.mode {
@@ -22,6 +23,7 @@ impl Options {
     }
 
     pub fn show_specific_options(&mut self, ui: &mut Ui) {
+        ui.heading(self.mode.options_name());
         match self.mode {
             Mode::Edit => self.specific.edit.draw_snap_options(ui),
             Mode::Classical => {}
@@ -30,6 +32,7 @@ impl Options {
     }
 
     pub fn show_generic_options(&mut self, ui: &mut Ui) {
+        ui.heading("Generic Options");
         ui.checkbox(&mut self.generic.revisit_same_node, "Allow self-traversal");
     }
 
@@ -64,6 +67,14 @@ impl Mode {
             Mode::Edit => "Edit",
             Mode::Classical => "Classical",
             Mode::Quantum => "Quantum",
+        }
+    }
+
+    pub fn options_name(&self) -> &'static str {
+        match self {
+            Mode::Edit => "Editing Options",
+            Mode::Classical => "Simulation Options (Classical)",
+            Mode::Quantum => "Simulation Options (Quantum)",
         }
     }
 }

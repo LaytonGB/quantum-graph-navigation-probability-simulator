@@ -4,7 +4,7 @@ use eframe::Frame;
 use egui::{panel::Side, Ui};
 use wfd::DialogParams;
 
-use crate::{graph_settings::CanvasSettings, Canvas, Options, Tool};
+use crate::{graph_settings::CanvasSettings, Canvas, Mode, Options, Tool};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -144,16 +144,15 @@ impl eframe::App for EframeApp {
         });
 
         egui::SidePanel::new(Side::Right, "right_toolbar").show(ctx, |ui| {
-            ui.heading("Computation Style");
             self.options.show_mode_buttons(ui);
-            ui.separator();
 
-            ui.heading(format!("{} Options", self.options.mode.name()));
+            ui.separator();
             self.options.show_specific_options(ui);
-            ui.separator();
 
-            ui.heading("Generic Options");
-            self.options.show_generic_options(ui);
+            if self.options.mode != Mode::Edit {
+                ui.separator();
+                self.options.show_generic_options(ui);
+            }
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
