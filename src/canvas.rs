@@ -5,8 +5,8 @@ use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::{
-    euclidean_dist, graph_settings::Snap, ContextMenu, ContextMenuValues, GraphLine, GraphNode,
-    Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
+    euclidean_dist, ContextMenu, ContextMenuValues, GraphLine, GraphNode, ModeOptions, Options,
+    Snap, Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
 };
 
 #[derive(Clone, Default)]
@@ -73,7 +73,7 @@ impl Canvas {
                 if !self
                     .nodes
                     .iter()
-                    .any(|n| n.borrow().clone() == rounded_node)
+                    .any(|n| n != &node_being_moved && n.borrow().clone() == rounded_node)
                 {
                     let mut node = node_being_moved.borrow_mut();
                     *node = rounded_node;
@@ -162,8 +162,11 @@ impl Canvas {
 
     /// Returns a Points object which stores Point data for presenting the Node
     /// coordinates on the graph.
-    pub fn nodes(&self) -> Points {
-        Points::new(self.nodes_coords()).filled(true).radius(5.0)
+    pub fn nodes(&self, options: &Options) -> Points {
+        Points::new(self.nodes_coords())
+            .filled(true)
+            .radius(5.0)
+            .color(options.get_node_color())
     }
 
     pub fn add_line(
@@ -339,15 +342,21 @@ impl Canvas {
         }
     }
 
-    fn draw_lines(&self, plot_ui: &mut PlotUi) {
+    fn draw_lines(&self, plot_ui: &mut PlotUi, options: &Options) {
         for line in &self.lines {
-            plot_ui.line(Line::new(line.clone()).color(Color32::BLUE));
+            plot_ui.line(Line::new(line.clone()).color(options.get_line_color()));
         }
     }
 
-    fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool, snap: Snap) {
-        self.draw_lines(plot_ui);
-        plot_ui.points(self.nodes());
+    fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool, options: &Options) {
+        let snap = if let ModeOptions::Edit(edit_options) = options.specific {
+            edit_options.snap
+        } else {
+            Snap::None
+        };
+
+        self.draw_lines(plot_ui, options);
+        plot_ui.points(self.nodes(options));
 
         self.reset_values_by_tool(selected_tool);
 
@@ -398,11 +407,13 @@ impl Canvas {
             .context_menu(|ctx_ui| ContextMenu::plot_context_menu(self, ctx_ui));
     }
 
-    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool, snap: Snap) {
+    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool, options: &Options) {
         Plot::new("canvas")
             .data_aspect(1.0)
             .legend(Legend::default())
-            .show(ui, |plot_ui| self.plot_show(plot_ui, selected_tool, snap));
+            .show(ui, |plot_ui| {
+                self.plot_show(plot_ui, selected_tool, options)
+            });
     }
 
     fn reset_values_by_tool(&mut self, selected_tool: Tool) {

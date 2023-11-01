@@ -2,20 +2,17 @@
 
 use eframe::Frame;
 use egui::{panel::Side, Ui};
-use serde::{Deserialize, Serialize};
 use wfd::DialogParams;
 
-use crate::{graph_settings::CanvasSettings, Canvas, ComputationOptions, Tool};
+use crate::{graph_settings::CanvasSettings, Canvas, Options, Tool};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
     canvas: Canvas,
 
-    graph_settings: CanvasSettings,
-
-    computation_options: ComputationOptions,
+    options: Options,
 
     #[serde(skip)] // don't cache this tool for next startup
     selected_tool: Tool,
@@ -129,7 +126,7 @@ impl eframe::App for EframeApp {
                     ui.add_space(16.0);
                 }
 
-                self.graph_settings.canvas_menu(ui, &mut self.canvas);
+                CanvasSettings::canvas_menu(ui, &mut self.canvas);
                 ui.add_space(16.0);
 
                 egui::widgets::global_dark_light_mode_buttons(ui);
@@ -148,25 +145,24 @@ impl eframe::App for EframeApp {
 
         egui::SidePanel::new(Side::Right, "right_toolbar").show(ctx, |ui| {
             ui.heading("Computation Style");
-            self.computation_options.show_style_buttons(ui);
+            self.options.show_mode_buttons(ui);
             ui.separator();
 
-            ui.heading(format!("{} Options", self.computation_options.style.name()));
-            self.computation_options.show_specific_options(ui);
+            ui.heading(format!("{} Options", self.options.mode.name()));
+            self.options.show_specific_options(ui);
             ui.separator();
 
             ui.heading("Generic Options");
-            self.computation_options.show_generic_options(ui);
+            self.options.show_generic_options(ui);
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.canvas
-                .show(ui, self.selected_tool, self.graph_settings.snap)
+            self.canvas.show(ui, self.selected_tool, &self.options)
         });
     }
 }
 
-// Powered By message
+//// Powered By message
 // fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
 //     ui.horizontal(|ui| {
 //         ui.spacing_mut().item_spacing.x = 0.0;

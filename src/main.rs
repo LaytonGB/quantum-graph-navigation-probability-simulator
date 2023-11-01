@@ -1,15 +1,16 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+// TODO move right-panel headers into respective function calls
+// TODO remove generic options when in edit mode
+// TODO add a windows panel that allows toggle of side panels
 // TODO remove utils.rs ?
 // TODO clean all imports/exports
 // TODO add "add graph" setting under canvas (place graph without clearing
 // canvas)
 // TODO add code for a linear random walk
-//   TODO add an edit mode (default)
-//   TODO when not in edit mode, nodes and lines are greyed
-//   TODO hide left panel when not in edit mode
-//   TODO deselect tools when not in edit mode
+//   TODO hide left panel when not in edit mode ?
+//   TODO deselect tools / force new tool when not in edit mode
 
 // GraphNode lookup problem
 // - likely requires HashMap to lookup placed nodes
