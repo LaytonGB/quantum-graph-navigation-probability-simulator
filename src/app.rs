@@ -4,7 +4,7 @@ use eframe::Frame;
 use egui::{panel::Side, Ui};
 use wfd::DialogParams;
 
-use crate::{graph_settings::CanvasSettings, Canvas, Mode, Options, Tool};
+use crate::{graph_settings::CanvasSettings, Canvas, Layout, Mode, Options, Tool};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -13,6 +13,8 @@ pub struct EframeApp {
     canvas: Canvas,
 
     options: Options,
+
+    layout: Layout,
 
     #[serde(skip)] // don't cache this tool for next startup
     selected_tool: Tool,
@@ -120,7 +122,7 @@ impl eframe::App for EframeApp {
             // The top panel is often a good place for a menu bar
 
             egui::menu::bar(ui, |ui| {
-                #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
+                #[cfg(not(target_arch = "wasm32"))] // TODO rework this when we can save in web
                 {
                     ui.menu_button("File", |ui| file_menu(self, ui, _frame));
                     ui.add_space(16.0);
@@ -129,31 +131,41 @@ impl eframe::App for EframeApp {
                 CanvasSettings::canvas_menu(ui, &mut self.canvas);
                 ui.add_space(16.0);
 
+                ui.menu_button("Layout", |ui| {
+                    ui.checkbox(&mut self.layout.tools, "Tools");
+                    ui.checkbox(&mut self.layout.mode, "Modes");
+                });
+                ui.add_space(16.0);
+
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
 
-        egui::SidePanel::new(Side::Left, "left_toolbar").show(ctx, |ui| {
-            ui.heading("Tools");
-            let mut tool_buttons: Vec<Tool> = vec![Tool::Move, Tool::Node, Tool::Line];
-            for tool in tool_buttons.iter_mut() {
-                tool.show(ui, &mut self.selected_tool);
-            }
-            // BUG: this line is needed, allows left-panel resizing
-            ui.separator();
-        });
-
-        egui::SidePanel::new(Side::Right, "right_toolbar").show(ctx, |ui| {
-            self.options.show_mode_buttons(ui);
-
-            ui.separator();
-            self.options.show_specific_options(ui);
-
-            if self.options.mode != Mode::Edit {
+        if self.layout.tools {
+            egui::SidePanel::new(Side::Left, "left_toolbar").show(ctx, |ui| {
+                ui.heading("Tools");
+                let mut tool_buttons: Vec<Tool> = vec![Tool::Move, Tool::Node, Tool::Line];
+                for tool in tool_buttons.iter_mut() {
+                    tool.show(ui, &mut self.selected_tool);
+                }
+                // BUG: this line is needed, allows left-panel resizing
                 ui.separator();
-                self.options.show_generic_options(ui);
-            }
-        });
+            });
+        }
+
+        if self.layout.mode {
+            egui::SidePanel::new(Side::Right, "right_toolbar").show(ctx, |ui| {
+                self.options.show_mode_buttons(ui);
+
+                ui.separator();
+                self.options.show_specific_options(ui);
+
+                if self.options.mode != Mode::Edit {
+                    ui.separator();
+                    self.options.show_generic_options(ui);
+                }
+            });
+        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.canvas.show(ui, self.selected_tool, &self.options)
