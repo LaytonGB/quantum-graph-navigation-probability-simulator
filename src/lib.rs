@@ -2,11 +2,11 @@
 
 mod app;
 mod canvas;
+mod canvas_actions;
 mod constants;
 mod context_menu;
 mod graph_line;
 mod graph_node;
-mod graph_settings;
 mod options;
 mod panels;
 mod tool;

@@ -4,20 +4,22 @@ use eframe::Frame;
 use egui::{panel::Side, Ui};
 use wfd::DialogParams;
 
-use crate::{graph_settings::CanvasSettings, Canvas, Layout, Mode, Options, Tool};
+use crate::{canvas_actions::CanvasActions, Canvas, Layout, Mode, Options, Tool};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
-    canvas: Canvas,
+    pub canvas: Canvas,
 
-    options: Options,
+    pub canvas_actions: CanvasActions,
 
-    layout: Layout,
+    pub options: Options,
+
+    pub layout: Layout,
 
     #[serde(skip)] // don't cache this tool for next startup
-    selected_tool: Tool,
+    pub selected_tool: Tool,
 }
 
 impl EframeApp {
@@ -48,7 +50,6 @@ fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
                 let dialog_result = wfd::save_dialog(DialogParams {
                     default_extension: "json",
                     file_types: vec![("JSON Files", "*.json")],
-                    title: "Select a save location",
                     file_name: "graph.json",
                     ..Default::default()
                 });
@@ -65,7 +66,6 @@ fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
 
                 let dialog_result = wfd::open_dialog(DialogParams {
                     file_types: vec![("JSON Files", "*.json")],
-                    title: "Select a file to open",
                     ..Default::default()
                 });
                 if let Ok(dialog_result) = dialog_result {
@@ -128,7 +128,7 @@ impl eframe::App for EframeApp {
                     ui.add_space(16.0);
                 }
 
-                CanvasSettings::canvas_menu(ui, &mut self.canvas);
+                self.canvas_actions.canvas_menu(ui, &mut self.canvas);
                 ui.add_space(16.0);
 
                 ui.menu_button("Layout", |ui| {
