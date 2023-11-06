@@ -99,23 +99,14 @@ impl Canvas {
         &self,
         coords: impl Into<GraphNode>,
     ) -> Option<(f64, Rc<RefCell<GraphNode>>)> {
-        if self.nodes.is_empty() {
-            return None;
-        }
-
         let coords: GraphNode = coords.into();
-        Some(
-            self.nodes
-                .iter()
-                .fold(None, |closest, node| {
-                    let dist = euclidean_dist(&node.borrow().clone(), &coords);
-                    match closest {
-                        Some((closest_dist, _)) if closest_dist < dist => closest,
-                        _ => Some((dist, (*node).clone())),
-                    }
-                })
-                .unwrap(),
-        )
+        self.nodes.iter().fold(None, |closest, node| {
+            let dist = euclidean_dist(&node.borrow().clone(), &coords);
+            match closest {
+                Some((closest_dist, _)) if closest_dist < dist => closest,
+                _ => Some((dist, (*node).clone())),
+            }
+        })
     }
 
     /// Removes and returns a target node. The node must have the exact same bit
@@ -194,23 +185,37 @@ impl Canvas {
         }
     }
 
+    pub fn dist_to_line_and_closest_point(&self, p: &GraphNode, l: &GraphLine) -> (GraphNode, f64) {
+        let closest_point_on_infinite_line = l.closest_point_to_node(p);
+        let (a, b) = (l.start.borrow(), l.end.borrow());
+        let (pa, pb) = (p.dist(&a), p.dist(&b));
+
+        // if point `p` is not between endpoint nodes
+        // dist (further end -> `p`) > len between endpoints
+        let (closer_node, further_dist) = if pa <= pb { (a, pb) } else { (b, pa) };
+        if further_dist > l.len() {
+            (closer_node.clone(), p.dist(&closer_node))
+        } else {
+            let dist = p.dist(&closest_point_on_infinite_line);
+            (closest_point_on_infinite_line, dist)
+        }
+    }
+
     pub fn find_closest_line_and_point_on_line(
         &self,
         pointer_coords: PlotPoint,
     ) -> Option<(f64, GraphNode, GraphLine)> {
         let point: GraphNode = pointer_coords.into();
         self.lines.iter().fold(None, |closest_details, line| {
-            let intersection_point = line.closest_point_to_node(&point);
-            let dist = intersection_point.dist(&point);
-            if let Some((closest_dist, closest_point, closest_line)) = closest_details {
-                // TODO see if `is_nan` is necessary
-                if !dist.is_nan() && dist < closest_dist {
-                    Some((dist, intersection_point, line.clone()))
+            let (new_closest, dist) = self.dist_to_line_and_closest_point(&point, line);
+            if let Some((closest_dist, closest_node, closest_line)) = closest_details {
+                if dist < closest_dist {
+                    Some((dist, new_closest, line.clone()))
                 } else {
-                    Some((closest_dist, closest_point, closest_line))
+                    Some((closest_dist, closest_node, closest_line))
                 }
             } else {
-                Some((dist, intersection_point, line.clone()))
+                Some((dist, new_closest, line.clone()))
             }
         })
     }

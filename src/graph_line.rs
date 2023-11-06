@@ -46,6 +46,21 @@ impl GraphLine {
         a + ax
     }
 
+    pub fn closest_endpoint_to_node(&self, p: &GraphNode) -> Option<(GraphNode, f64)> {
+        let len = self.len();
+        let (a, b) = (self.start.borrow(), self.end.borrow());
+        let (ap, bp) = (a.dist(p), b.dist(p));
+        if len < ap && len < bp {
+            None
+        } else {
+            if ap <= bp {
+                Some((a.clone(), ap))
+            } else {
+                Some((b.clone(), bp))
+            }
+        }
+    }
+
     pub fn distance_to_node(&self, p: &GraphNode) -> f64 {
         let n = self.closest_point_to_node(p);
         n.dist(p)
