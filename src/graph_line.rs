@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use egui_plot::PlotPoints;
 
-use crate::GraphNode;
+use crate::graph_node::GraphNode;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct GraphLine {

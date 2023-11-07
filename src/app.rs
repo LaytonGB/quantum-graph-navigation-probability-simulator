@@ -4,7 +4,11 @@ use eframe::Frame;
 use egui::{panel::Side, Ui};
 use wfd::DialogParams;
 
-use crate::{canvas_actions::CanvasActions, Canvas, Layout, Mode, Options, Tool};
+use crate::canvas::Canvas;
+use crate::canvas_actions::CanvasActions;
+use crate::options::{Mode, Options};
+use crate::panels::Layout;
+use crate::tool::Tool;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]

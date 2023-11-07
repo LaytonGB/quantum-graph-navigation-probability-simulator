@@ -1,7 +1,7 @@
 use egui::Pos2;
 use egui_plot::PlotPoint;
 
-use crate::Snap;
+use crate::options::Snap;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphNode {

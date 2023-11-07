@@ -4,10 +4,13 @@ use egui::{Color32, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
-use crate::{
-    euclidean_dist, ContextMenu, ContextMenuValues, GraphLine, GraphNode, Mode, Options, Snap,
-    Tool, NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS,
-};
+use crate::constants::{NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS};
+use crate::context_menu::{ContextMenu, ContextMenuValues};
+use crate::graph_line::GraphLine;
+use crate::graph_node::GraphNode;
+use crate::options::{Mode, Options, Snap};
+use crate::tool::Tool;
+use crate::utils::euclidean_dist;
 
 #[derive(Clone, Default)]
 pub struct Canvas {

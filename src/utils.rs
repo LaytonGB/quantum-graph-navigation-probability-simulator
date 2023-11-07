@@ -1,7 +1,7 @@
 use egui::Pos2;
 use egui_plot::PlotPoint;
 
-use crate::GraphNode;
+use crate::graph_node::GraphNode;
 
 pub trait FloatCoordinates {
     fn x(&self) -> f64;

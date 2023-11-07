@@ -2,8 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 // TODO remove utils.rs ?
-// TODO clean all imports/exports
-// canvas)
 // TODO add code for a linear random walk
 //   TODO hide left panel when not in edit mode ?
 //   TODO deselect tools / force new tool when not in edit mode

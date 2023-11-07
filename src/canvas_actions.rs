@@ -3,7 +3,10 @@ use std::{cell::RefCell, num::ParseFloatError, rc::Rc};
 use egui::Ui;
 use wfd::DialogParams;
 
-use crate::{Canvas, EframeApp, GraphLine, GraphNode};
+use crate::canvas::Canvas;
+use crate::graph_line::GraphLine;
+use crate::graph_node::GraphNode;
+use crate::EframeApp;
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize, Debug)]
 pub struct CanvasActions {

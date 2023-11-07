@@ -1,6 +1,8 @@
 use egui::Ui;
 
-use crate::{Canvas, GraphNode, Snap};
+use crate::canvas::Canvas;
+use crate::graph_node::GraphNode;
+use crate::options::Snap;
 
 #[derive(Clone, Default, Debug)]
 pub struct ContextMenuAddNode {
