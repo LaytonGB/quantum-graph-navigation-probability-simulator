@@ -3,6 +3,8 @@
 
 // TODO remove utils.rs ?
 // TODO add code for a linear random walk
+//   TODO give nodes unique labels
+//     TODO hashmap by these labels ?
 //   TODO hide left panel when not in edit mode ?
 //   TODO deselect tools / force new tool when not in edit mode
 
