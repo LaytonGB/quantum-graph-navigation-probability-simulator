@@ -85,7 +85,7 @@ impl CanvasDetails {
             let (x_min, y_min, x_max, y_max) = self.nodes.iter().fold(
                 (f64::MAX, f64::MAX, f64::MIN, f64::MIN),
                 |(x_min, y_min, x_max, y_max), n| {
-                    let GraphNode { x, y } = *n;
+                    let GraphNode { x, y, label: _ } = *n;
                     (x.min(x_min), y.min(y_min), x.max(x_max), y.max(y_max))
                 },
             );

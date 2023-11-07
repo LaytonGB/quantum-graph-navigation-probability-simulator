@@ -3,15 +3,24 @@ use egui_plot::PlotPoint;
 
 use crate::options::Snap;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, PartialOrd, Default, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphNode {
+    pub label: Option<String>,
     pub x: f64,
     pub y: f64,
 }
 
 impl GraphNode {
     pub fn new(x: f64, y: f64) -> Self {
-        GraphNode { x, y }
+        GraphNode { x, y, label: None }
+    }
+
+    pub fn new_labelled<'a>(x: f64, y: f64, label: impl Into<&'a str>) -> Self {
+        GraphNode {
+            x,
+            y,
+            label: Some(label.into().to_owned()),
+        }
     }
 
     pub fn dot(&self, other: &Self) -> f64 {
@@ -84,6 +93,7 @@ impl Into<GraphNode> for [f64; 2] {
         GraphNode {
             x: self[0],
             y: self[1],
+            ..Default::default()
         }
     }
 }
@@ -93,6 +103,7 @@ impl Into<GraphNode> for (f64, f64) {
         GraphNode {
             x: self.0,
             y: self.1,
+            ..Default::default()
         }
     }
 }
@@ -100,7 +111,11 @@ impl Into<GraphNode> for (f64, f64) {
 impl Into<GraphNode> for PlotPoint {
     fn into(self) -> GraphNode {
         let PlotPoint { x, y } = self;
-        GraphNode { x, y }
+        GraphNode {
+            x,
+            y,
+            ..Default::default()
+        }
     }
 }
 
@@ -110,6 +125,7 @@ impl Into<GraphNode> for Pos2 {
         GraphNode {
             x: x as f64,
             y: y as f64,
+            ..Default::default()
         }
     }
 }
