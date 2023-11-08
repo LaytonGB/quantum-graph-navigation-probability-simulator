@@ -146,11 +146,16 @@ impl eframe::App for EframeApp {
         });
 
         if self.layout.tools {
-            egui::SidePanel::new(Side::Left, "left_toolbar").show(ctx, |ui| {
+            egui::SidePanel::new(Side::Left, "left_panel").show(ctx, |ui| {
                 ui.heading("Tools");
-                let mut tool_buttons: Vec<Tool> = vec![Tool::Move, Tool::Node, Tool::Line];
+                let mut tool_buttons: Vec<Tool> =
+                    vec![Tool::Move, Tool::Node, Tool::Line, Tool::Label];
                 for tool in tool_buttons.iter_mut() {
-                    tool.show(ui, &mut self.selected_tool);
+                    tool.show(
+                        ui,
+                        &mut self.selected_tool,
+                        &mut self.canvas_actions.add_label_text,
+                    );
                 }
                 // BUG: this line is needed, allows left-panel resizing
                 ui.separator();
@@ -158,7 +163,7 @@ impl eframe::App for EframeApp {
         }
 
         if self.layout.mode {
-            egui::SidePanel::new(Side::Right, "right_toolbar").show(ctx, |ui| {
+            egui::SidePanel::new(Side::Right, "right_panel").show(ctx, |ui| {
                 self.options.show_mode_buttons(ui);
 
                 ui.separator();
@@ -172,7 +177,8 @@ impl eframe::App for EframeApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.canvas.show(ui, self.selected_tool, &self.options)
+            self.canvas
+                .show(ui, self.selected_tool, &self.options, &self.canvas_actions)
         });
     }
 }

@@ -10,6 +10,7 @@ use crate::EframeApp;
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize, Debug)]
 pub struct CanvasActions {
+    pub add_label_text: String,
     pub add_graph_values: PlaceGraphValues,
 }
 
@@ -67,7 +68,7 @@ impl TryInto<GraphNode> for PlaceGraphValues {
     type Error = ParseFloatError;
 
     fn try_into(self) -> Result<GraphNode, Self::Error> {
-        Ok(GraphNode::new(self.x.parse()?, self.y.parse()?))
+        Ok(GraphNode::new_unlabelled(self.x.parse()?, self.y.parse()?))
     }
 }
 
@@ -90,7 +91,8 @@ impl CanvasDetails {
                 },
             );
             // TODO add float divisibility
-            GraphNode::new(x_max + x_min, y_max + y_min) / GraphNode::new(2.0, 2.0)
+            GraphNode::new_unlabelled(x_max + x_min, y_max + y_min)
+                / GraphNode::new_unlabelled(2.0, 2.0)
         };
         let center_translation = new_center - old_center;
         for node in &self.nodes {

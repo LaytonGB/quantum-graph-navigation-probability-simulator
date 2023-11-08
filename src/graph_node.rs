@@ -11,16 +11,16 @@ pub struct GraphNode {
 }
 
 impl GraphNode {
-    pub fn new(x: f64, y: f64) -> Self {
-        GraphNode { x, y, label: None }
+    pub fn new_unlabelled(x: f64, y: f64) -> Self {
+        Self::new(x, y, None)
     }
 
     pub fn new_labelled<'a>(x: f64, y: f64, label: impl Into<&'a str>) -> Self {
-        GraphNode {
-            x,
-            y,
-            label: Some(label.into().to_owned()),
-        }
+        Self::new(x, y, Some(label.into().to_owned()))
+    }
+
+    pub fn new(x: f64, y: f64, label: Option<String>) -> Self {
+        GraphNode { x, y, label }
     }
 
     pub fn dot(&self, other: &Self) -> f64 {
@@ -28,7 +28,7 @@ impl GraphNode {
     }
 
     pub fn float_mul(&self, rhs: f64) -> Self {
-        Self::new(self.x * rhs, self.y * rhs)
+        Self::new_unlabelled(self.x * rhs, self.y * rhs)
     }
 
     pub fn dist_squared(&self, other: &Self) -> f64 {
@@ -47,17 +47,19 @@ impl GraphNode {
                 if x < self.x - 1.0 || y < self.y - 1.0 {
                     None
                 } else {
-                    Some(Self::new(x, y))
+                    Some(Self::new(x, y, self.label))
                 }
             }
-            Snap::One => Some(Self::new(self.x.round(), self.y.round())),
+            Snap::One => Some(Self::new(self.x.round(), self.y.round(), self.label)),
             Snap::Five => Some(Self::new(
                 (self.x / 5.0).round() * 5.0,
                 (self.y / 5.0).round() * 5.0,
+                self.label,
             )),
             Snap::Ten => Some(Self::new(
                 (self.x / 10.0).round() * 10.0,
                 (self.y / 10.0).round() * 10.0,
+                self.label,
             )),
         }
     }
@@ -68,7 +70,7 @@ impl std::ops::Add for GraphNode {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self::new(self.x + rhs.x, self.y + rhs.y)
+        Self::new_unlabelled(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
@@ -76,7 +78,7 @@ impl std::ops::Sub for GraphNode {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self::new(self.x - rhs.x, self.y - rhs.y)
+        Self::new_unlabelled(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
@@ -84,7 +86,7 @@ impl std::ops::Div for GraphNode {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Self::new(self.x / rhs.x, self.y / rhs.y)
+        Self::new_unlabelled(self.x / rhs.x, self.y / rhs.y)
     }
 }
 

@@ -8,6 +8,7 @@ pub enum Tool {
     Move,
     Node,
     Line,
+    Label,
 }
 
 impl Tool {
@@ -16,13 +17,20 @@ impl Tool {
             Tool::Move => "Move",
             Tool::Node => "Node",
             Tool::Line => "Line",
+            Tool::Label => "Label",
         }
     }
 
-    pub fn show(&self, ui: &mut Ui, selected_tool: &mut Tool) {
+    pub fn show(&self, ui: &mut Ui, selected_tool: &mut Tool, label_text: &mut String) {
         let mut btn = ui.button(format!("{}", self.name()));
         if selected_tool == self {
             btn = btn.highlight();
+            if *self == Tool::Label {
+                ui.group(|ui| {
+                    ui.label("Label text:");
+                    ui.text_edit_singleline(label_text);
+                });
+            }
         }
 
         if btn.clicked() {

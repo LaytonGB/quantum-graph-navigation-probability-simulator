@@ -1,10 +1,12 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+// TODO move distance checks into node and line find funcs
 // TODO remove utils.rs ?
 // TODO add code for a linear random walk
 //   TODO give nodes unique labels
-//     TODO hashmap by these labels ?
+//     TODO check for uniqueness
+//     TODO offset node centers by global amount
 //   TODO hide left panel when not in edit mode ?
 //   TODO deselect tools / force new tool when not in edit mode
 

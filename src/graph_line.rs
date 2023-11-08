@@ -33,8 +33,8 @@ impl GraphLine {
     pub fn float_mul(self, rhs: f64) -> (GraphNode, GraphNode) {
         let (a, b) = (self.start.borrow().clone(), self.end.borrow().clone());
         (
-            GraphNode::new(a.x * rhs, a.y * rhs),
-            GraphNode::new(b.x * rhs, b.y * rhs),
+            GraphNode::new_unlabelled(a.x * rhs, a.y * rhs),
+            GraphNode::new_unlabelled(b.x * rhs, b.y * rhs),
         )
     }
 

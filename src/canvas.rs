@@ -1,9 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
-use egui::{Color32, InputState, Key, Modifiers, Pos2, Ui};
-use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points};
+use egui::{Color32, FontId, InputState, Key, Modifiers, Pos2, Ui};
+use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points, Text};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
+use crate::canvas_actions::CanvasActions;
 use crate::constants::{NODE_CLICK_PRIORITY_MULTIPLIER, POINTER_INTERACTION_RADIUS};
 use crate::context_menu::{ContextMenu, ContextMenuValues};
 use crate::graph_line::GraphLine;
@@ -11,6 +12,14 @@ use crate::graph_node::GraphNode;
 use crate::options::{Mode, Options, Snap};
 use crate::tool::Tool;
 use crate::utils::euclidean_dist;
+
+pub enum CanvasObject {
+    Node(Rc<RefCell<GraphNode>>),
+    Line {
+        line: GraphLine,
+        closest_point_on_line: GraphNode,
+    },
+}
 
 #[derive(Clone, Default)]
 pub struct Canvas {
@@ -23,6 +32,8 @@ pub struct Canvas {
     pub node_being_moved_and_origin: Option<(Rc<RefCell<GraphNode>>, GraphNode)>,
 
     pub context_menu_values: ContextMenuValues,
+
+    pub action_data: CanvasActions,
 }
 
 impl Canvas {
@@ -163,6 +174,25 @@ impl Canvas {
             .color(options.get_node_color())
     }
 
+    pub fn draw_nodes(&self, plot_ui: &mut PlotUi, options: &Options) {
+        plot_ui.points(self.nodes(options));
+
+        let mut style = (*plot_ui.ctx().style()).clone();
+        style
+            .text_styles
+            .insert(egui::TextStyle::Small, FontId::proportional(26.0));
+        plot_ui.ctx().set_style(style);
+        for node in &self.nodes {
+            plot_ui.text(
+                Text::new(
+                    node.borrow().clone().into(),
+                    node.borrow().label.as_ref().unwrap_or(&"".to_owned()),
+                )
+                .color(Color32::WHITE),
+            );
+        }
+    }
+
     pub fn add_line(
         &mut self,
         plot_ui: &PlotUi,
@@ -184,6 +214,24 @@ impl Canvas {
                 } else {
                     self.line_start = Some(clicked_node);
                 }
+            }
+        }
+    }
+
+    pub fn add_label(
+        &mut self,
+        plot_ui: &PlotUi,
+        pointer_coords: PlotPoint,
+        global_pointer_coords: Pos2,
+    ) {
+        if let Some((_, label_target)) = self.find_closest_node_and_dist(pointer_coords) {
+            let label_target_node = label_target.borrow();
+            let target_global_pos =
+                plot_ui.screen_from_plot([label_target_node.x, label_target_node.y].into());
+            let global_dist = euclidean_dist(&target_global_pos, &global_pointer_coords);
+            if global_dist <= POINTER_INTERACTION_RADIUS {
+                std::mem::drop(label_target_node);
+                label_target.borrow_mut().label = Some(self.action_data.add_label_text.clone());
             }
         }
     }
@@ -259,49 +307,58 @@ impl Canvas {
         }
     }
 
+    fn find_closest_to_pointer(&mut self, pointer_coords: PlotPoint) -> Option<CanvasObject> {
+        match (
+            self.find_closest_node_and_dist(pointer_coords),
+            self.find_closest_line_and_point_on_line(pointer_coords),
+        ) {
+            (None, Some((_, closest_point_on_line, closest_line))) => Some(CanvasObject::Line {
+                line: closest_line,
+                closest_point_on_line,
+            }),
+            (Some((_, closest_node)), None) => Some(CanvasObject::Node(closest_node)),
+            (
+                Some((closest_node_dist, closest_node)),
+                Some((closest_line_dist, closest_point_on_line, closest_line)),
+            ) => Some(
+                if closest_node_dist / NODE_CLICK_PRIORITY_MULTIPLIER <= closest_line_dist {
+                    CanvasObject::Node(closest_node)
+                } else {
+                    CanvasObject::Line {
+                        line: closest_line,
+                        closest_point_on_line,
+                    }
+                },
+            ),
+            _ => None,
+        }
+    }
+
     fn delete_closest_to_pointer(
         &mut self,
         plot_ui: &PlotUi,
         pointer_coords: PlotPoint,
         global_pointer_coords: Result<Pos2, ()>,
     ) {
-        match (
+        if let (Ok(global_pointer_coords), Some(closest)) = (
             global_pointer_coords,
-            self.find_closest_node_and_dist(pointer_coords),
-            self.find_closest_line_and_point_on_line(pointer_coords),
+            self.find_closest_to_pointer(pointer_coords),
         ) {
-            (Ok(global_pointer_coords), None, Some((_, closest_point_on_line, closest_line))) => {
-                self.remove_line_if_pointer_within_range(
+            match closest {
+                CanvasObject::Node(node) => {
+                    self.remove_node_if_pointer_within_range(plot_ui, node, global_pointer_coords)
+                }
+                CanvasObject::Line {
+                    line,
+                    closest_point_on_line,
+                } => self.remove_line_if_pointer_within_range(
                     plot_ui,
-                    closest_line,
+                    line,
                     closest_point_on_line,
                     global_pointer_coords,
-                )
+                ),
             }
-            (Ok(global_pointer_coords), Some((_, closest_node)), None) => self
-                .remove_node_if_pointer_within_range(plot_ui, closest_node, global_pointer_coords),
-            (
-                Ok(global_pointer_coords),
-                Some((closest_node_dist, closest_node)),
-                Some((closest_line_dist, closest_point_on_line, closest_line)),
-            ) => {
-                if closest_node_dist / NODE_CLICK_PRIORITY_MULTIPLIER <= closest_line_dist {
-                    self.remove_node_if_pointer_within_range(
-                        plot_ui,
-                        closest_node,
-                        global_pointer_coords,
-                    );
-                } else {
-                    self.remove_line_if_pointer_within_range(
-                        plot_ui,
-                        closest_line,
-                        closest_point_on_line,
-                        global_pointer_coords,
-                    )
-                }
-            }
-            _ => (),
-        };
+        }
     }
 
     /// Consumes keypress data to perform graph interactions.
@@ -346,7 +403,10 @@ impl Canvas {
             (Tool::Line, Ok(global_pointer_coords)) => {
                 self.add_line(plot_ui, pointer_coords, global_pointer_coords)
             }
-            _ => (), // TODO add appropriate error message
+            (Tool::Label, Ok(global_pointer_coords)) => {
+                self.add_label(plot_ui, pointer_coords, global_pointer_coords)
+            }
+            _ => unreachable!(), // TODO add appropriate error message
         }
     }
 
@@ -364,7 +424,7 @@ impl Canvas {
         };
 
         self.draw_lines(plot_ui, options);
-        plot_ui.points(self.nodes(options));
+        self.draw_nodes(plot_ui, options);
 
         self.reset_values_by_tool(selected_tool);
 
@@ -415,7 +475,14 @@ impl Canvas {
             .context_menu(|ctx_ui| ContextMenu::plot_context_menu(self, ctx_ui));
     }
 
-    pub fn show(&mut self, ui: &mut Ui, selected_tool: Tool, options: &Options) {
+    pub fn show(
+        &mut self,
+        ui: &mut Ui,
+        selected_tool: Tool,
+        options: &Options,
+        canvas_actions: &CanvasActions,
+    ) {
+        self.action_data = canvas_actions.clone();
         Plot::new("canvas")
             .data_aspect(1.0)
             .legend(Legend::default())
