@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use egui::{Color32, FontId, InputState, Key, Modifiers, Pos2, Ui};
+use egui::{Align2, Color32, FontId, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points, Text};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
@@ -177,18 +177,22 @@ impl Canvas {
     pub fn draw_nodes(&self, plot_ui: &mut PlotUi, options: &Options) {
         plot_ui.points(self.nodes(options));
 
+        // TODO consider performance
         let mut style = (*plot_ui.ctx().style()).clone();
         style
             .text_styles
-            .insert(egui::TextStyle::Small, FontId::proportional(26.0));
+            .insert(egui::TextStyle::Small, FontId::proportional(12.0));
         plot_ui.ctx().set_style(style);
         for node in &self.nodes {
+            let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
+            let adjusted_node = plot_ui.plot_from_screen(global_node + [-5.0, -5.0].into());
             plot_ui.text(
                 Text::new(
-                    node.borrow().clone().into(),
+                    adjusted_node.into(),
                     node.borrow().label.as_ref().unwrap_or(&"".to_owned()),
                 )
-                .color(Color32::WHITE),
+                .color(Color32::WHITE)
+                .anchor(Align2::RIGHT_BOTTOM),
             );
         }
     }
