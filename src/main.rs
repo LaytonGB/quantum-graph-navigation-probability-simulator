@@ -6,7 +6,6 @@
 // TODO add code for a linear random walk
 //   TODO give nodes unique labels
 //     TODO check for uniqueness
-//     TODO offset node centers by global amount
 //   TODO hide left panel when not in edit mode ?
 //   TODO deselect tools / force new tool when not in edit mode
 
