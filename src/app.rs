@@ -2,7 +2,6 @@
 
 use eframe::Frame;
 use egui::{panel::Side, Ui};
-use wfd::DialogParams;
 
 use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
@@ -48,6 +47,8 @@ fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
         // TODO get this working for other OS's
         #[cfg(target_os = "windows")]
         {
+            use wfd::DialogParams;
+
             if ui.button("Save").clicked() {
                 ui.close_menu();
 
@@ -93,6 +94,7 @@ fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
     if ui.button("Quit").clicked() {
         ui.close_menu();
 
+        #[cfg(not(target_arch = "wasm32"))]
         _frame.close();
     }
 }

@@ -1,7 +1,6 @@
 use std::{cell::RefCell, num::ParseFloatError, rc::Rc};
 
 use egui::Ui;
-use wfd::DialogParams;
 
 use crate::canvas::Canvas;
 use crate::graph_line::GraphLine;
@@ -28,6 +27,7 @@ impl CanvasActions {
                     ui.text_edit_singleline(&mut self.add_graph_values.y);
                 });
 
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Place graph").clicked() {
                     if let Ok(graph_place_coords) = self.add_graph_values.clone().try_into() {
                         self.place_graph(canvas, graph_place_coords);
@@ -42,7 +42,10 @@ impl CanvasActions {
         });
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn place_graph(&self, canvas: &mut Canvas, graph_center: GraphNode) {
+        use wfd::DialogParams;
+
         let dialog_result = wfd::open_dialog(DialogParams {
             file_types: vec![("JSON Files", "*.json")],
             ..Default::default()
