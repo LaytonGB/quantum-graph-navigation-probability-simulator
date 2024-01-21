@@ -1,6 +1,6 @@
 // TODO clone the egui_demo_lib from https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/widget_gallery.rs
 
-use eframe::Frame;
+use egui::Context;
 use egui::{panel::Side, Ui};
 
 use crate::canvas::Canvas;
@@ -8,6 +8,7 @@ use crate::canvas_actions::CanvasActions;
 use crate::options::{Mode, Options};
 use crate::panels::Layout;
 use crate::tool::Tool;
+use crate::EditorsContainer;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -16,6 +17,8 @@ pub struct EframeApp {
     pub canvas: Canvas,
 
     pub canvas_actions: CanvasActions,
+
+    pub editors: EditorsContainer,
 
     pub options: Options,
 
@@ -41,7 +44,7 @@ impl EframeApp {
     }
 }
 
-fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
+fn file_menu(app: &mut EframeApp, ui: &mut Ui, ctx: &Context) {
     #[cfg(any(target_os = "windows", target_os = "macos"))]
     {
         // TODO get this working for other OS's
@@ -95,7 +98,7 @@ fn file_menu(app: &mut EframeApp, ui: &mut Ui, _frame: &mut Frame) {
         ui.close_menu();
 
         #[cfg(not(target_arch = "wasm32"))]
-        _frame.close();
+        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
     }
 }
 
@@ -130,7 +133,7 @@ impl eframe::App for EframeApp {
             egui::menu::bar(ui, |ui| {
                 #[cfg(not(target_arch = "wasm32"))] // TODO rework this when we can save in web
                 {
-                    ui.menu_button("File", |ui| file_menu(self, ui, _frame));
+                    ui.menu_button("File", |ui| file_menu(self, ui, ctx));
                     ui.add_space(16.0);
                 }
 
@@ -171,9 +174,14 @@ impl eframe::App for EframeApp {
                 ui.separator();
                 self.options.show_specific_options(ui);
 
-                if self.options.mode != Mode::Edit {
+                // if self.options.mode != Mode::Edit {
+                //     ui.separator();
+                //     self.options.show_generic_options(ui);
+                // }
+
+                if self.options.mode == Mode::Classical {
                     ui.separator();
-                    self.options.show_generic_options(ui);
+                    self.editors.show_matrix_editor(ui, self.canvas.nodes.len());
                 }
             });
         }
