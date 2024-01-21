@@ -31,7 +31,7 @@ impl MatrixEditor {
                 .striped(true)
                 .spacing([10.0, 10.0])
                 .show(ui, |ui| {
-                    self.check_text_fields_modified(ui);
+                    self.show_text_fields(ui);
                     if self.text_fields_modified {
                         self.apply_text_fields();
                     }
@@ -39,7 +39,7 @@ impl MatrixEditor {
         });
     }
 
-    fn check_text_fields_modified(&mut self, ui: &mut egui::Ui) {
+    fn show_text_fields(&mut self, ui: &mut egui::Ui) {
         for i in 0..self.text_fields.len() {
             let res = ui.text_edit_singleline(&mut self.text_fields[i]);
             if res.lost_focus() {
@@ -73,11 +73,14 @@ impl MatrixEditor {
     }
 
     fn set_ith_element(&mut self, i: usize, value: f64) {
-        println!("set_ith_element: {} to {}", i, value);
+        let (row, col) = self.ith_index_to_row_col(i);
+        self.matrix[(row, col)] = value;
+    }
+
+    fn ith_index_to_row_col(&self, i: usize) -> (usize, usize) {
         let nrows = self.matrix.nrows();
         let ncols = self.matrix.ncols();
-        self.matrix[(i / nrows, i % ncols)] = value;
-        println!("matrix: {}", self.matrix);
+        (i / nrows, i % ncols)
     }
 
     fn get_math_constants() -> HashMapContext {
@@ -90,17 +93,30 @@ impl MatrixEditor {
     }
 
     pub(crate) fn resize_matrix(&mut self, size: usize) {
+        if self.matrix.nrows() == size {
+            return;
+        }
+
         let old_matrix = self.matrix.clone();
+        let old_size = old_matrix.nrows();
         self.matrix = DMatrix::from_element(size, size, 0.0);
         for i in 0..size {
             for j in 0..size {
-                if i < old_matrix.nrows() && j < old_matrix.ncols() {
+                if i < old_size && j < old_size {
                     self.matrix[(i, j)] = old_matrix[(i, j)];
                 }
             }
         }
 
-        self.text_fields.resize(size * size, format!("{}", 0.0));
+        let old_text_fields = self.text_fields.clone();
+        self.text_fields = vec![format!("{}", 0.0); size * size];
+        for i in 0..size.min(old_size) {
+            for j in 0..size.min(old_size) {
+                if i < old_size && j < old_size {
+                    self.text_fields[i * size + j] = old_text_fields[i * old_size + j].clone();
+                }
+            }
+        }
         self.previous_text_fields = self.text_fields.clone();
     }
 }
