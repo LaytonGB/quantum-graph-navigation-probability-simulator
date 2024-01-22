@@ -40,7 +40,21 @@ impl MatrixEditor {
     }
 
     fn show_text_fields(&mut self, ui: &mut egui::Ui) {
+        if self.matrix.ncols() == 0 {
+            return;
+        }
+
+        ui.label("");
+        for i in 0..self.matrix.ncols() {
+            ui.label(format!("{}", i));
+        }
+        ui.end_row();
+
         for i in 0..self.text_fields.len() {
+            if i % self.matrix.ncols() == 0 {
+                ui.label(format!("{}", i / self.matrix.ncols()));
+            }
+
             let res = ui.text_edit_singleline(&mut self.text_fields[i]);
             if res.lost_focus() {
                 self.text_fields_modified = true;
