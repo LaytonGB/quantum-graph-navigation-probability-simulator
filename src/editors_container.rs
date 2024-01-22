@@ -16,4 +16,12 @@ impl EditorsContainer {
             self.matrix_editor = Some(MatrixEditor::new(size));
         }
     }
+
+    pub fn get_matrix_editor(&self) -> Option<&MatrixEditor> {
+        self.matrix_editor.as_ref()
+    }
+
+    pub fn clear_all(&mut self) {
+        self.matrix_editor = None;
+    }
 }

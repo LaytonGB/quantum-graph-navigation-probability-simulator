@@ -5,7 +5,7 @@ use egui::Ui;
 use crate::canvas::Canvas;
 use crate::graph_line::GraphLine;
 use crate::graph_node::GraphNode;
-use crate::EframeApp;
+use crate::{EditorsContainer, EframeApp};
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize, Debug)]
 pub struct CanvasActions {
@@ -14,7 +14,12 @@ pub struct CanvasActions {
 }
 
 impl CanvasActions {
-    pub fn canvas_menu(&mut self, ui: &mut Ui, canvas: &mut Canvas) {
+    pub fn canvas_menu(
+        &mut self,
+        ui: &mut Ui,
+        canvas: &mut Canvas,
+        editors: &mut EditorsContainer,
+    ) {
         ui.menu_button("Canvas", |ui| {
             ui.menu_button("Add Graph", |ui| {
                 ui.horizontal(|ui| {
@@ -38,6 +43,7 @@ impl CanvasActions {
 
             if ui.button("Clear").clicked() {
                 canvas.clear_all();
+                editors.clear_all();
             }
         });
     }

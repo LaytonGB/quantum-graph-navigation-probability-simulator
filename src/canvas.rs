@@ -197,6 +197,18 @@ impl Canvas {
         }
     }
 
+    pub fn is_line_between_nodes(&self, start_node_index: usize, end_node_index: usize) -> bool {
+        let start_node = self.nodes.get(start_node_index);
+        let end_node = self.nodes.get(end_node_index);
+        if let (Some(start_node), Some(end_node)) = (start_node, end_node) {
+            let line = GraphLine::new(start_node.clone(), end_node.clone());
+            let reverse_line = GraphLine::new(end_node.clone(), start_node.clone());
+            self.lines.iter().any(|l| *l == line || *l == reverse_line)
+        } else {
+            false
+        }
+    }
+
     pub fn add_line(
         &mut self,
         plot_ui: &PlotUi,
@@ -220,6 +232,26 @@ impl Canvas {
                 }
             }
         }
+    }
+
+    pub fn add_line_between_nodes(&mut self, start_node_index: usize, end_node_index: usize) {
+        let start_node = &self.nodes[start_node_index];
+        let end_node = &self.nodes[end_node_index];
+        let line = GraphLine::new(start_node.clone(), end_node.clone());
+        self.lines.push(line);
+    }
+
+    pub fn remove_line_between_nodes(&mut self, start_node_index: usize, end_node_index: usize) {
+        let start_node = &self.nodes[start_node_index];
+        let end_node = &self.nodes[end_node_index];
+        let line = GraphLine::new(start_node.clone(), end_node.clone());
+        let reverse_line = GraphLine::new(end_node.clone(), start_node.clone());
+        self.lines = self
+            .lines
+            .clone()
+            .into_iter()
+            .filter(|l| *l != line && *l != reverse_line)
+            .collect();
     }
 
     pub fn add_label(

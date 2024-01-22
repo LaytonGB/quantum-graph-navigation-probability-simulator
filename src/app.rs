@@ -137,7 +137,8 @@ impl eframe::App for EframeApp {
                     ui.add_space(16.0);
                 }
 
-                self.canvas_actions.canvas_menu(ui, &mut self.canvas);
+                self.canvas_actions
+                    .canvas_menu(ui, &mut self.canvas, &mut self.editors);
                 ui.add_space(16.0);
 
                 ui.menu_button("Layout", |ui| {
@@ -187,8 +188,27 @@ impl eframe::App for EframeApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            if self.options.mode == Mode::Classical {
+                if let Some(matrix_editor) = self.editors.get_matrix_editor() {
+                    let matrix = &matrix_editor.matrix;
+                    for i in 0..matrix_editor.matrix.nrows() {
+                        for j in 0..matrix_editor.matrix.ncols() {
+                            if i != j {
+                                if matrix[(i, j)] == 0.0 {
+                                    if self.canvas.is_line_between_nodes(i, j) {
+                                        self.canvas.remove_line_between_nodes(i, j);
+                                    }
+                                } else if !self.canvas.is_line_between_nodes(i, j) {
+                                    self.canvas.add_line_between_nodes(i, j);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             self.canvas
-                .show(ui, self.selected_tool, &self.options, &self.canvas_actions)
+                .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
         });
     }
 }

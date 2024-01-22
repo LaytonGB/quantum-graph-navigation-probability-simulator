@@ -43,11 +43,7 @@ impl MatrixEditor {
         for i in 0..self.text_fields.len() {
             let res = ui.text_edit_singleline(&mut self.text_fields[i]);
             if res.lost_focus() {
-                let res = eval_with_context(&self.text_fields[i], &self.math_constants);
-                match res {
-                    Ok(Value::Int(_)) | Ok(Value::Float(_)) => self.text_fields_modified = true,
-                    _ => continue,
-                };
+                self.text_fields_modified = true;
             }
 
             if (i + 1) % self.matrix.ncols() == 0 {
