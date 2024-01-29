@@ -1,6 +1,8 @@
 use evalexpr::{context_map, eval_with_context, HashMapContext, Value};
 use nalgebra::DMatrix;
 
+use super::Editor;
+
 #[derive(Debug, Clone)]
 pub struct MatrixEditor {
     pub matrix: DMatrix<f64>,
@@ -11,6 +13,18 @@ pub struct MatrixEditor {
     pub text_fields: Vec<String>,
 
     text_fields_modified: bool,
+
+    is_canvas_update_ready: bool,
+}
+
+impl Editor for MatrixEditor {
+    fn is_canvas_update_ready(&self) -> bool {
+        self.text_fields_modified
+    }
+
+    fn on_canvas_updated(&mut self) {
+        self.apply_text_fields();
+    }
 }
 
 impl MatrixEditor {
@@ -22,6 +36,7 @@ impl MatrixEditor {
             previous_text_fields: text_fields.clone(),
             text_fields,
             text_fields_modified: false,
+            is_canvas_update_ready: false,
         }
     }
 
@@ -80,6 +95,7 @@ impl MatrixEditor {
         }
         self.previous_text_fields = self.text_fields.clone();
         self.text_fields_modified = false;
+        self.is_canvas_update_ready = true;
     }
 
     fn set_ith_element(&mut self, i: usize, value: f64) {
@@ -154,6 +170,7 @@ impl From<SerializedMatrixEditor> for MatrixEditor {
             previous_text_fields: m.text_fields.clone(),
             text_fields: m.text_fields,
             text_fields_modified: false,
+            is_canvas_update_ready: false,
         }
     }
 }

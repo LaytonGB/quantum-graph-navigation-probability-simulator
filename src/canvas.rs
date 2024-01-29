@@ -272,6 +272,11 @@ impl Canvas {
         }
     }
 
+    pub fn add_label_to_node(&mut self, node_index: usize) {
+        let node = &self.nodes[node_index];
+        node.borrow_mut().label = Some(self.action_data.add_label_text.clone());
+    }
+
     pub fn dist_to_line_and_closest_point(&self, p: &GraphNode, l: &GraphLine) -> (GraphNode, f64) {
         let closest_point_on_infinite_line = l.closest_point_to_node(p);
         let (a, b) = (l.start.borrow(), l.end.borrow());

@@ -21,6 +21,10 @@ impl EditorsContainer {
         self.matrix_editor.as_ref()
     }
 
+    pub fn get_matrix_editor_mut(&mut self) -> Option<&mut MatrixEditor> {
+        self.matrix_editor.as_mut()
+    }
+
     pub fn clear_all(&mut self) {
         self.matrix_editor = None;
     }

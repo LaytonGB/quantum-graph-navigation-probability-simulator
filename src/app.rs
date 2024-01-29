@@ -5,6 +5,7 @@ use egui::{panel::Side, Ui};
 
 use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
+use crate::editors::Editor;
 use crate::options::{Mode, Options};
 use crate::panels::Layout;
 use crate::tool::Tool;
@@ -188,28 +189,38 @@ impl eframe::App for EframeApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.options.mode == Mode::Classical {
-                if let Some(matrix_editor) = self.editors.get_matrix_editor() {
+            self.update_canvas_from_editors();
+
+            self.canvas
+                .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
+        });
+    }
+}
+
+impl EframeApp {
+    fn update_canvas_from_editors(&mut self) {
+        // TODO refactor
+        if self.options.mode == Mode::Classical {
+            if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
+                if matrix_editor.is_canvas_update_ready() {
                     let matrix = &matrix_editor.matrix;
                     for i in 0..matrix_editor.matrix.nrows() {
                         for j in 0..matrix_editor.matrix.ncols() {
                             if i != j {
-                                if matrix[(i, j)] == 0.0 {
+                                if matrix[dbg!((i, j))] == 0.0 {
                                     if self.canvas.is_line_between_nodes(i, j) {
                                         self.canvas.remove_line_between_nodes(i, j);
                                     }
-                                } else if !self.canvas.is_line_between_nodes(i, j) {
+                                } else if !dbg!(self.canvas.is_line_between_nodes(i, j)) {
                                     self.canvas.add_line_between_nodes(i, j);
                                 }
                             }
                         }
                     }
+                    matrix_editor.on_canvas_updated();
                 }
             }
-
-            self.canvas
-                .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
-        });
+        }
     }
 }
 
