@@ -183,13 +183,13 @@ impl Canvas {
             .text_styles
             .insert(egui::TextStyle::Small, FontId::proportional(12.0));
         plot_ui.ctx().set_style(style);
-        for node in &self.nodes {
+        for (i, node) in self.nodes.iter().enumerate() {
             let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
             let adjusted_node = plot_ui.plot_from_screen(global_node + [-5.0, -5.0].into());
             plot_ui.text(
                 Text::new(
                     adjusted_node.into(),
-                    node.borrow().label.as_ref().unwrap_or(&"".to_owned()),
+                    node.borrow().label.as_ref().unwrap_or(&i.to_string()),
                 )
                 .color(Color32::WHITE)
                 .anchor(Align2::RIGHT_BOTTOM),
