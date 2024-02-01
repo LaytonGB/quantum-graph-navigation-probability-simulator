@@ -19,11 +19,11 @@ pub struct MatrixEditor {
 
 impl Editor for MatrixEditor {
     fn is_canvas_update_ready(&self) -> bool {
-        self.text_fields_modified
+        self.is_canvas_update_ready
     }
 
     fn on_canvas_updated(&mut self) {
-        self.apply_text_fields();
+        self.is_canvas_update_ready = false;
     }
 }
 
@@ -82,6 +82,7 @@ impl MatrixEditor {
     }
 
     fn apply_text_fields(&mut self) {
+        println!("Applying text fields");
         for i in 0..self.text_fields.len() {
             let res = eval_with_context(&self.text_fields[i], &self.math_constants);
             match res {

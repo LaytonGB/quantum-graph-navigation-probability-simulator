@@ -2,6 +2,7 @@
 
 use egui::Context;
 use egui::{panel::Side, Ui};
+use nalgebra::DMatrix;
 
 use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
@@ -199,32 +200,36 @@ impl eframe::App for EframeApp {
 
 impl EframeApp {
     fn update_canvas_from_editors(&mut self) {
-        // TODO refactor
         if self.options.mode == Mode::Classical {
             if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
                 if matrix_editor.is_canvas_update_ready() {
                     let matrix = &matrix_editor.matrix;
-                    for i in 0..matrix_editor.matrix.nrows() {
-                        for j in 0..matrix_editor.matrix.ncols() {
-                            if i != j {
-                                if matrix[dbg!((i, j))] == 0.0 {
-                                    if self.canvas.is_line_between_nodes(i, j) {
-                                        self.canvas.remove_line_between_nodes(i, j);
-                                    }
-                                } else if !dbg!(self.canvas.is_line_between_nodes(i, j)) {
-                                    self.canvas.add_line_between_nodes(i, j);
-                                }
-                            }
-                        }
-                    }
+                    let canvas = &mut self.canvas;
+                    Self::update_edges_from_matrix(matrix, canvas);
                     matrix_editor.on_canvas_updated();
+                }
+            }
+        }
+    }
+
+    fn update_edges_from_matrix(matrix: &DMatrix<f64>, canvas: &mut Canvas) {
+        println!("Updating canvas from matrix");
+        for (i, j) in (0..matrix.nrows()).flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
+        {
+            if i != j {
+                if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
+                    if canvas.is_line_between_nodes(i, j) {
+                        canvas.remove_line_between_nodes(i, j);
+                    }
+                } else if !canvas.is_line_between_nodes(i, j) {
+                    canvas.add_line_between_nodes(i, j);
                 }
             }
         }
     }
 }
 
-//// Powered By message
+//// "Powered By" message
 // fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
 //     ui.horizontal(|ui| {
 //         ui.spacing_mut().item_spacing.x = 0.0;
