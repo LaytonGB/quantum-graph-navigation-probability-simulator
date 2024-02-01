@@ -213,7 +213,6 @@ impl EframeApp {
     }
 
     fn update_edges_from_matrix(matrix: &DMatrix<f64>, canvas: &mut Canvas) {
-        println!("Updating canvas from matrix");
         for (i, j) in (0..matrix.nrows()).flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
         {
             if i != j {
