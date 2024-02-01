@@ -25,6 +25,8 @@ pub enum CanvasObject {
 pub struct Canvas {
     pub nodes: Vec<Rc<RefCell<GraphNode>>>,
 
+    pub node_deletion_history: Vec<usize>,
+
     pub lines: Vec<GraphLine>,
 
     pub line_start: Option<Rc<RefCell<GraphNode>>>,

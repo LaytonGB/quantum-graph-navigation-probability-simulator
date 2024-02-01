@@ -25,6 +25,12 @@ impl EditorsContainer {
         self.matrix_editor.as_mut()
     }
 
+    pub fn remove_nodes(&mut self, node_idxs: Vec<usize>) {
+        if let Some(matrix_editor) = &mut self.matrix_editor {
+            matrix_editor.remove_node(node_idxs);
+        }
+    }
+
     pub fn clear_all(&mut self) {
         self.matrix_editor = None;
     }

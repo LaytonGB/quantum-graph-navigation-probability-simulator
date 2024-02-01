@@ -82,7 +82,6 @@ impl MatrixEditor {
     }
 
     fn apply_text_fields(&mut self) {
-        println!("Applying text fields");
         for i in 0..self.text_fields.len() {
             let res = eval_with_context(&self.text_fields[i], &self.math_constants);
             match res {
@@ -144,6 +143,35 @@ impl MatrixEditor {
                 }
             }
         }
+        self.previous_text_fields = self.text_fields.clone();
+    }
+
+    pub(crate) fn remove_node(&mut self, node_idxs: Vec<usize>) {
+        // BUG This function is not working properly i think?
+        let mut new_matrix =
+            DMatrix::from_element(self.matrix.nrows() - 1, self.matrix.ncols() - 1, 0.0);
+        let mut new_text_fields =
+            vec![format!("{}", 0.0); (self.matrix.nrows() - 1) * (self.matrix.ncols() - 1)];
+        let mut new_text_fields_idx = 0;
+        for i in 0..self.matrix.nrows() {
+            if node_idxs.contains(&i) {
+                continue;
+            }
+            let mut new_text_fields_col_idx = 0;
+            for j in 0..self.matrix.ncols() {
+                if node_idxs.contains(&j) {
+                    continue;
+                }
+                new_matrix[(new_text_fields_idx, new_text_fields_col_idx)] = self.matrix[(i, j)];
+                new_text_fields
+                    [new_text_fields_idx * (self.matrix.ncols() - 1) + new_text_fields_col_idx] =
+                    self.text_fields[i * self.matrix.ncols() + j].clone();
+                new_text_fields_col_idx += 1;
+            }
+            new_text_fields_idx += 1;
+        }
+        self.matrix = new_matrix;
+        self.text_fields = new_text_fields;
         self.previous_text_fields = self.text_fields.clone();
     }
 }

@@ -1,5 +1,7 @@
 // TODO clone the egui_demo_lib from https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/widget_gallery.rs
 
+use std::mem;
+
 use egui::Context;
 use egui::{panel::Side, Ui};
 use nalgebra::DMatrix;
@@ -255,6 +257,11 @@ impl EframeApp {
 
     fn update_editors_from_canvas(&mut self) {
         if let Some((_, Mode::Classical)) = self.options.mode_change_data {
+            if !self.canvas.node_deletion_history.is_empty() {
+                self.editors
+                    .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
+            }
+
             if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
                 let matrix = &mut matrix_editor.matrix;
                 let text_fields = &mut matrix_editor.text_fields;
