@@ -46,64 +46,6 @@ impl EframeApp {
     }
 }
 
-fn file_menu(app: &mut EframeApp, ui: &mut Ui, ctx: &Context) {
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
-    {
-        // TODO get this working for other OS's
-        #[cfg(target_os = "windows")]
-        {
-            use wfd::DialogParams;
-
-            if ui.button("Save").clicked() {
-                ui.close_menu();
-
-                let dialog_result = wfd::save_dialog(DialogParams {
-                    default_extension: "json",
-                    file_types: vec![("JSON Files", "*.json")],
-                    file_name: "graph.json",
-                    ..Default::default()
-                });
-                if let Ok(dialog_result) = dialog_result {
-                    std::fs::write(
-                        dialog_result.selected_file_path,
-                        serde_json::to_string(app).unwrap(),
-                    )
-                    .ok();
-                }
-            }
-            if ui.button("Load").clicked() {
-                ui.close_menu();
-
-                let dialog_result = wfd::open_dialog(DialogParams {
-                    file_types: vec![("JSON Files", "*.json")],
-                    ..Default::default()
-                });
-                if let Ok(dialog_result) = dialog_result {
-                    if let Ok(file) = std::fs::read(dialog_result.selected_file_path) {
-                        if let Ok(c) = serde_json::from_slice::<EframeApp>(file.as_slice()) {
-                            *app = c;
-                        }
-                    }
-                }
-            }
-        }
-        #[cfg(target_os = "macos")]
-        {
-            explorer_program_name = Some("open");
-        }
-        #[cfg(target_os = "linux")]
-        {
-            explorer_program_name = Some("xdg-open");
-        }
-    }
-    if ui.button("Quit").clicked() {
-        ui.close_menu();
-
-        #[cfg(not(target_arch = "wasm32"))]
-        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-    }
-}
-
 impl eframe::App for EframeApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
@@ -144,7 +86,7 @@ impl EframeApp {
             egui::menu::bar(ui, |ui| {
                 #[cfg(not(target_arch = "wasm32"))] // TODO rework this when we can save in web
                 {
-                    ui.menu_button("File", |ui| file_menu(self, ui, ctx));
+                    ui.menu_button("File", |ui| self.show_file_menu(ui, ctx));
                     ui.add_space(16.0);
                 }
 
@@ -210,6 +152,78 @@ impl EframeApp {
             self.canvas
                 .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
         });
+    }
+
+    fn show_file_menu(&mut self, ui: &mut Ui, ctx: &Context) {
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
+        {
+            self.show_save_button(ui);
+            self.show_load_button(ui);
+            #[cfg(target_os = "macos")]
+            {
+                explorer_program_name = Some("open");
+            }
+            #[cfg(target_os = "linux")]
+            {
+                explorer_program_name = Some("xdg-open");
+            }
+        }
+        self.show_quit_button(ui, ctx);
+    }
+
+    // TODO get this working for other OS's
+    #[cfg(target_os = "windows")]
+    fn show_save_button(&mut self, ui: &mut Ui) {
+        use wfd::DialogParams;
+
+        if ui.button("Save").clicked() {
+            ui.close_menu();
+
+            let dialog_result = wfd::save_dialog(DialogParams {
+                default_extension: "json",
+                file_types: vec![("JSON Files", "*.json")],
+                file_name: "graph.json",
+                ..Default::default()
+            });
+            if let Ok(dialog_result) = dialog_result {
+                std::fs::write(
+                    dialog_result.selected_file_path,
+                    serde_json::to_string(self).unwrap(),
+                )
+                .ok();
+            }
+        }
+    }
+
+    // TODO get this working for other OS's
+    #[cfg(target_os = "windows")]
+    fn show_load_button(&mut self, ui: &mut Ui) {
+        use wfd::DialogParams;
+
+        if ui.button("Load").clicked() {
+            ui.close_menu();
+
+            let dialog_result = wfd::open_dialog(DialogParams {
+                file_types: vec![("JSON Files", "*.json")],
+                ..Default::default()
+            });
+            if let Ok(dialog_result) = dialog_result {
+                if let Ok(file) = std::fs::read(dialog_result.selected_file_path) {
+                    if let Ok(c) = serde_json::from_slice::<EframeApp>(file.as_slice()) {
+                        *self = c;
+                    }
+                }
+            }
+        }
+    }
+
+    fn show_quit_button(&mut self, ui: &mut Ui, ctx: &Context) {
+        if ui.button("Quit").clicked() {
+            ui.close_menu();
+
+            #[cfg(not(target_arch = "wasm32"))]
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
     }
 
     fn update_canvas_from_editors(&mut self) {
