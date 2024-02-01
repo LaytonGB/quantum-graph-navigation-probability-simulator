@@ -3,7 +3,10 @@ use egui::{Color32, Ui};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Options {
     pub mode: Mode,
+    pub mode_change_data: Option<(Mode, Mode)>,
+
     pub specific: ModeOptions,
+
     pub generic: GenericComputationOptions,
 }
 
@@ -17,7 +20,7 @@ impl Options {
             }
 
             if btn.clicked() {
-                self.mode = mode;
+                self.set_mode(mode);
             }
         }
     }
@@ -50,6 +53,20 @@ impl Options {
             Mode::Classical => Color32::WHITE,
             Mode::Quantum => Color32::WHITE,
         }
+    }
+
+    pub fn set_mode(&mut self, mode: Mode) {
+        if self.mode == mode {
+            return;
+        }
+
+        let old_mode = self.mode;
+        self.mode = mode;
+        self.mode_change_data = Some((old_mode, mode));
+    }
+
+    pub fn clear_mode_change_data(&mut self) {
+        self.mode_change_data = None;
     }
 }
 

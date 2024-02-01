@@ -75,6 +75,9 @@ impl eframe::App for EframeApp {
         self.show_left_panel(ctx);
         self.show_right_panel(ctx);
         self.show_center_panel(ctx);
+
+        self.update_canvas_from_editors();
+        self.update_editors_from_canvas();
     }
 }
 
@@ -147,8 +150,6 @@ impl EframeApp {
 
     fn show_center_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.update_canvas_from_editors();
-
             self.canvas
                 .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
         });
@@ -227,7 +228,7 @@ impl EframeApp {
     }
 
     fn update_canvas_from_editors(&mut self) {
-        if self.options.mode == Mode::Classical {
+        if self.options.mode == Mode::Classical && self.options.mode_change_data.is_none() {
             if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
                 if matrix_editor.is_canvas_update_ready() {
                     let matrix = &matrix_editor.matrix;
@@ -248,6 +249,43 @@ impl EframeApp {
                 }
             } else if !canvas.is_line_between_nodes(i, j) {
                 canvas.add_line_between_nodes(i, j);
+            }
+        }
+    }
+
+    fn update_editors_from_canvas(&mut self) {
+        if let Some((_, Mode::Classical)) = self.options.mode_change_data {
+            if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
+                let matrix = &mut matrix_editor.matrix;
+                let text_fields = &mut matrix_editor.text_fields;
+                let canvas = &self.canvas;
+                Self::update_matrix_from_edges(matrix, text_fields, canvas);
+                self.options.clear_mode_change_data();
+            }
+        }
+    }
+
+    fn update_matrix_from_edges(
+        matrix: &mut DMatrix<f64>,
+        text_fields: &mut Vec<String>,
+        canvas: &Canvas,
+    ) {
+        for (i, j) in (0..matrix.nrows())
+            .flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
+            .collect::<Vec<_>>()
+        {
+            if canvas.is_line_between_nodes(i, j) {
+                if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
+                    matrix[(i, j)] = 1.0;
+                    matrix[(j, i)] = 1.0;
+                    text_fields[i * matrix.nrows() + j] = format!("{}", 1.0);
+                    text_fields[j * matrix.nrows() + i] = format!("{}", 1.0);
+                }
+            } else {
+                matrix[(i, j)] = 0.0;
+                matrix[(j, i)] = 0.0;
+                text_fields[i * matrix.nrows() + j] = format!("{}", 0.0);
+                text_fields[j * matrix.nrows() + i] = format!("{}", 0.0);
             }
         }
     }
