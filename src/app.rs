@@ -129,6 +129,15 @@ impl eframe::App for EframeApp {
         //     .insert(0, "arial".to_owned());
         // ctx.set_fonts(fonts);
 
+        self.show_top_panel(ctx);
+        self.show_left_panel(ctx);
+        self.show_right_panel(ctx);
+        self.show_center_panel(ctx);
+    }
+}
+
+impl EframeApp {
+    fn show_top_panel(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar
 
@@ -152,7 +161,9 @@ impl eframe::App for EframeApp {
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
+    }
 
+    fn show_left_panel(&mut self, ctx: &egui::Context) {
         if self.layout.tools {
             egui::SidePanel::new(Side::Left, "left_panel").show(ctx, |ui| {
                 ui.heading("Tools");
@@ -169,7 +180,9 @@ impl eframe::App for EframeApp {
                 ui.separator();
             });
         }
+    }
 
+    fn show_right_panel(&mut self, ctx: &egui::Context) {
         if self.layout.mode {
             egui::SidePanel::new(Side::Right, "right_panel").show(ctx, |ui| {
                 self.options.show_mode_buttons(ui);
@@ -188,7 +201,9 @@ impl eframe::App for EframeApp {
                 }
             });
         }
+    }
 
+    fn show_center_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.update_canvas_from_editors();
 
@@ -196,9 +211,7 @@ impl eframe::App for EframeApp {
                 .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
         });
     }
-}
 
-impl EframeApp {
     fn update_canvas_from_editors(&mut self) {
         if self.options.mode == Mode::Classical {
             if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
