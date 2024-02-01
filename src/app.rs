@@ -215,14 +215,12 @@ impl EframeApp {
     fn update_edges_from_matrix(matrix: &DMatrix<f64>, canvas: &mut Canvas) {
         for (i, j) in (0..matrix.nrows()).flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
         {
-            if i != j {
-                if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
-                    if canvas.is_line_between_nodes(i, j) {
-                        canvas.remove_line_between_nodes(i, j);
-                    }
-                } else if !canvas.is_line_between_nodes(i, j) {
-                    canvas.add_line_between_nodes(i, j);
+            if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
+                if canvas.is_line_between_nodes(i, j) {
+                    canvas.remove_line_between_nodes(i, j);
                 }
+            } else if !canvas.is_line_between_nodes(i, j) {
+                canvas.add_line_between_nodes(i, j);
             }
         }
     }
