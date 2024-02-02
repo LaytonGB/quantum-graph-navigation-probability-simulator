@@ -139,7 +139,11 @@ impl Canvas {
                 .into_iter()
                 .filter(|l| !l.is_attatched(&target_node))
                 .collect();
-            Some(self.nodes.remove(index))
+            let res = Some(self.nodes.remove(index));
+            if res.is_some() {
+                self.node_deletion_history.push(index);
+            }
+            res
         } else {
             None
         }

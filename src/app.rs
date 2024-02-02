@@ -73,13 +73,13 @@ impl eframe::App for EframeApp {
         //     .insert(0, "arial".to_owned());
         // ctx.set_fonts(fonts);
 
+        self.update_canvas_from_editors();
+        self.update_editors_from_canvas();
+
         self.show_top_panel(ctx);
         self.show_left_panel(ctx);
         self.show_right_panel(ctx);
         self.show_center_panel(ctx);
-
-        self.update_canvas_from_editors();
-        self.update_editors_from_canvas();
     }
 }
 
