@@ -3,6 +3,7 @@
 mod app;
 pub mod canvas;
 pub mod canvas_actions;
+pub mod classical_state_manager;
 pub mod constants;
 pub mod context_menu;
 pub mod editors;

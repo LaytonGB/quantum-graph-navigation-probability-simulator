@@ -1,8 +1,52 @@
-use crate::editors::MatrixEditor;
+use crate::{classical_state_manager::ClassicalStateManager, editors::MatrixEditor};
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default)]
 pub struct EditorsContainer {
     matrix_editor: Option<MatrixEditor>,
+
+    classical_state_manager: Option<ClassicalStateManager>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct SerializedEditorsContainer {
+    matrix_editor: Option<MatrixEditor>,
+}
+
+impl From<&EditorsContainer> for SerializedEditorsContainer {
+    fn from(editors_container: &EditorsContainer) -> Self {
+        Self {
+            matrix_editor: editors_container.matrix_editor.clone(),
+        }
+    }
+}
+
+impl From<SerializedEditorsContainer> for EditorsContainer {
+    fn from(serialized_editors_container: SerializedEditorsContainer) -> Self {
+        Self {
+            matrix_editor: serialized_editors_container.matrix_editor,
+            ..Default::default()
+        }
+    }
+}
+
+impl serde::Serialize for EditorsContainer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let data = SerializedEditorsContainer::from(self);
+        data.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EditorsContainer {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let data = SerializedEditorsContainer::deserialize(deserializer)?;
+        Ok(EditorsContainer::from(data))
+    }
 }
 
 impl EditorsContainer {
@@ -31,7 +75,17 @@ impl EditorsContainer {
         }
     }
 
+    pub fn step_state_forward(&mut self) {
+        if let (Some(manager), Some(editor)) = (
+            self.classical_state_manager.as_mut(),
+            self.matrix_editor.as_ref(),
+        ) {
+            manager.step_forward(&editor.matrix);
+        }
+    }
+
     pub fn clear_all(&mut self) {
         self.matrix_editor = None;
+        self.classical_state_manager = None;
     }
 }

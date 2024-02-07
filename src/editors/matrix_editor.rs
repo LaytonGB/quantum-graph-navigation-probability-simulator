@@ -175,6 +175,13 @@ impl MatrixEditor {
         self.text_fields = new_text_fields;
         self.previous_text_fields = self.text_fields.clone();
     }
+
+    pub fn get_agent_matrix(&self, agent_start_index: usize) -> DMatrix<f64> {
+        let mut agent_matrix =
+            DMatrix::from_element(self.matrix.nrows().pow(2), self.matrix.ncols().pow(2), 0.0);
+        agent_matrix[(agent_start_index, agent_start_index)] = 1.0;
+        agent_matrix
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

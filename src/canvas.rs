@@ -559,18 +559,9 @@ impl Canvas {
             *node = original_node;
         }
     }
-}
 
-impl Serialize for Canvas {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut state = serializer.serialize_struct("Canvas", 2)?;
-        state.serialize_field("nodes", &self.nodes)?;
-
-        let serializable_lines: Vec<(usize, usize)> = self
-            .lines
+    pub fn lines_as_idx_tuples(&self) -> Vec<(usize, usize)> {
+        self.lines
             .iter()
             .map(|l| {
                 self.nodes
@@ -597,7 +588,19 @@ impl Serialize for Canvas {
                     None
                 }
             })
-            .collect();
+            .collect()
+    }
+}
+
+impl Serialize for Canvas {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_struct("Canvas", 2)?;
+        state.serialize_field("nodes", &self.nodes)?;
+
+        let serializable_lines: Vec<(usize, usize)> = self.lines_as_idx_tuples();
         state.serialize_field("lines", &serializable_lines)?;
 
         state.end()

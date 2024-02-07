@@ -145,6 +145,7 @@ impl EframeApp {
                 if self.options.mode == Mode::Classical {
                     ui.separator();
                     self.editors.show_matrix_editor(ui, self.canvas.nodes.len());
+                    if ui.button("Step").clicked() {}
                 }
             });
         }
