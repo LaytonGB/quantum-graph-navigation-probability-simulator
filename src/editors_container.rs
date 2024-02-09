@@ -76,11 +76,8 @@ impl EditorsContainer {
     }
 
     pub fn step_state_forward(&mut self) {
-        if let (Some(manager), Some(editor)) = (
-            self.classical_state_manager.as_mut(),
-            self.matrix_editor.as_ref(),
-        ) {
-            manager.step_forward(&editor.matrix);
+        if let Some(manager) = self.classical_state_manager.as_mut() {
+            manager.step_forward();
         }
     }
 

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use nalgebra::DMatrix;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransitionMatrix {
     pub matrix: DMatrix<f64>,
 }
@@ -12,10 +12,10 @@ impl std::fmt::Display for TransitionMatrix {
     }
 }
 
-impl TryFrom<DMatrix<f64>> for TransitionMatrix {
+impl TryFrom<&DMatrix<f64>> for TransitionMatrix {
     type Error = &'static str;
 
-    fn try_from(stochastic_matrix: DMatrix<f64>) -> Result<Self, Self::Error> {
+    fn try_from(stochastic_matrix: &DMatrix<f64>) -> Result<Self, Self::Error> {
         if !stochastic_matrix.is_square() {
             return Err("Matrix is not square");
         }
@@ -62,7 +62,7 @@ mod tests {
             (2, 1) => 1.0,
             _ => 0.0,
         });
-        let output_matrix = TransitionMatrix::try_from(input_matrix).unwrap();
+        let output_matrix = TransitionMatrix::try_from(&input_matrix).unwrap();
         let target_matrix = DMatrix::from_fn(9, 9, |i, j| match (i, j) {
             (0, 0) => 0.3,
             (0, 3) => 0.3,
