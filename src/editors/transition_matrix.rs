@@ -1,3 +1,4 @@
+use anyhow::Result;
 use nalgebra::DMatrix;
 
 #[derive(Debug)]
@@ -11,8 +12,14 @@ impl std::fmt::Display for TransitionMatrix {
     }
 }
 
-impl From<DMatrix<f64>> for TransitionMatrix {
-    fn from(stochastic_matrix: DMatrix<f64>) -> Self {
+impl TryFrom<DMatrix<f64>> for TransitionMatrix {
+    type Error = &'static str;
+
+    fn try_from(stochastic_matrix: DMatrix<f64>) -> Result<Self, Self::Error> {
+        if !stochastic_matrix.is_square() {
+            return Err("Matrix is not square");
+        }
+
         let n = stochastic_matrix.nrows();
         let m = n.pow(2);
         let mut matrix = DMatrix::from_element(m, m, 0.0);
@@ -25,7 +32,19 @@ impl From<DMatrix<f64>> for TransitionMatrix {
                 }
             }
         }
-        Self { matrix }
+        Ok(Self { matrix })
+    }
+}
+
+impl TransitionMatrix {
+    pub fn apply(&self, other: DMatrix<f64>) -> Result<DMatrix<f64>> {
+        if !other.is_square() {
+            return Err(anyhow::anyhow!("Matrix is not square"));
+        }
+        if other.nrows() != self.matrix.nrows() {
+            return Err(anyhow::anyhow!("Matrix dimensions do not match"));
+        }
+        Ok(self.matrix.clone() * other)
     }
 }
 
@@ -43,7 +62,7 @@ mod tests {
             (2, 1) => 1.0,
             _ => 0.0,
         });
-        let output_matrix = TransitionMatrix::from(input_matrix);
+        let output_matrix = TransitionMatrix::try_from(input_matrix).unwrap();
         let target_matrix = DMatrix::from_fn(9, 9, |i, j| match (i, j) {
             (0, 0) => 0.3,
             (0, 3) => 0.3,
