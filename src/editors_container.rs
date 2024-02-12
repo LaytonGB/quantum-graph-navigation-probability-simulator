@@ -59,6 +59,11 @@ impl EditorsContainer {
         } else {
             self.matrix_editor = Some(MatrixEditor::new(size));
         }
+
+        match ClassicalStateManager::try_from(&self.matrix_editor.as_ref().unwrap().matrix) {
+            Ok(csm) => self.classical_state_manager = Some(csm),
+            Err(err) => eprintln!("Error: {}", err),
+        }
     }
 
     pub fn get_matrix_editor(&self) -> Option<&MatrixEditor> {

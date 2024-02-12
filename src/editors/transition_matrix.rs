@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use nalgebra::DMatrix;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,6 +37,20 @@ impl TryFrom<&DMatrix<f64>> for TransitionMatrix {
 }
 
 impl TransitionMatrix {
+    pub fn get_initial_state(&self) -> Result<DMatrix<f64>> {
+        let n = self.matrix.nrows();
+        for idx in (0..n).flat_map(|col| (0..n).map(move |row| (row, col))) {
+            if self.matrix[idx] > 0.0 {
+                return {
+                    let mut res = DMatrix::from_element(n, n, 0.0);
+                    res[idx] = 1.0;
+                    Ok(res)
+                };
+            }
+        }
+        Err(anyhow!("Matrix is all zeros"))
+    }
+
     pub fn apply(&self, other: DMatrix<f64>) -> Result<DMatrix<f64>> {
         if !other.is_square() {
             return Err(anyhow::anyhow!("Matrix is not square"));
