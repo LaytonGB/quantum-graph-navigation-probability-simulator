@@ -93,9 +93,21 @@ impl MatrixEditor {
                 }
             };
         }
+        self.normalize_columns();
         self.previous_text_fields = self.text_fields.clone();
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
+    }
+
+    fn normalize_columns(&mut self) {
+        for j in 0..self.matrix.ncols() {
+            let sum = self.matrix.column(j).iter().sum::<f64>();
+            if sum > 0.0 {
+                for i in 0..self.matrix.nrows() {
+                    self.matrix[(i, j)] /= sum;
+                }
+            }
+        }
     }
 
     fn set_ith_element(&mut self, i: usize, value: f64) {

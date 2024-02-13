@@ -47,6 +47,7 @@ impl ClassicalStateManager {
     }
 
     pub(crate) fn reset_state(&mut self) {
+        self.step = 0;
         self.state = self.transition_matrix.get_initial_state();
     }
 }
