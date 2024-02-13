@@ -73,6 +73,7 @@ impl eframe::App for EframeApp {
         //     .insert(0, "arial".to_owned());
         // ctx.set_fonts(fonts);
 
+        self.editors.sync_editors();
         self.update_canvas_from_editors();
         self.update_editors_from_canvas();
 
@@ -132,33 +133,32 @@ impl EframeApp {
     fn show_right_panel(&mut self, ctx: &egui::Context) {
         if self.layout.mode {
             egui::SidePanel::new(Side::Right, "right_panel").show(ctx, |ui| {
-                self.options.show_mode_buttons(ui);
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    self.options.show_mode_buttons(ui);
 
-                ui.separator();
-                self.options.show_specific_options(ui);
-
-                // if self.options.mode != Mode::Edit {
-                //     ui.separator();
-                //     self.options.show_generic_options(ui);
-                // }
-
-                if self.options.mode == Mode::Classical {
                     ui.separator();
-                    self.editors.show_matrix_editor(ui, self.canvas.nodes.len());
+                    self.options.show_specific_options(ui);
 
-                    if ui.button("Step").clicked() {
-                        print!("{:?} -> ", self.editors.get_state_data());
-                        self.editors.step_state_forward();
-                        println!("{:?}", self.editors.get_state_data());
-                    }
-                    if ui.button("Reset").clicked() {
-                        self.editors.reset_state();
-                        println!("{:?}", self.editors.get_state_data());
-                    }
+                    // if self.options.mode != Mode::Edit {
+                    //     ui.separator();
+                    //     self.options.show_generic_options(ui);
+                    // }
 
-                    let state_data = self.editors.get_state_data();
-                    self.canvas.add_state_data(state_data);
-                }
+                    if self.options.mode == Mode::Classical {
+                        ui.separator();
+                        self.editors.show_matrix_editor(ui, self.canvas.nodes.len());
+
+                        if ui.button("Step").clicked() {
+                            self.editors.step_state_forward();
+                        }
+                        if ui.button("Reset").clicked() {
+                            self.editors.reset_state();
+                        }
+
+                        let state_data = self.editors.get_state_data();
+                        self.canvas.add_state_data(state_data);
+                    }
+                });
             });
         }
     }

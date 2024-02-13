@@ -29,14 +29,15 @@ impl TryFrom<&DMatrix<f64>> for ClassicalStateManager {
 
 impl ClassicalStateManager {
     pub fn step_forward(&mut self) {
-        println!("Step {}: {:?}", self.step, self.state);
         self.step += 1;
         self.state = self.transition_matrix.apply(self.state.clone()).unwrap();
-        println!("Step {}: {:?}", self.step, self.state);
     }
 
     pub(crate) fn get_state_data(&self) -> DVector<f64> {
         let nnodes = (self.state.nrows() as f64).sqrt() as usize;
+        if nnodes == 0 {
+            return DVector::from_element(0, 0.0);
+        }
         DVector::from_iterator(
             nnodes,
             self.state
@@ -49,5 +50,11 @@ impl ClassicalStateManager {
     pub(crate) fn reset_state(&mut self) {
         self.step = 0;
         self.state = self.transition_matrix.get_initial_state();
+    }
+
+    pub(crate) fn set_transition_matrix_from(&mut self, matrix: &DMatrix<f64>) {
+        if let Ok(new_transition_matrix) = TransitionMatrix::try_from(matrix) {
+            self.transition_matrix = new_transition_matrix;
+        }
     }
 }

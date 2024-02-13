@@ -47,6 +47,9 @@ impl TryFrom<&DMatrix<f64>> for TransitionMatrix {
 impl TransitionMatrix {
     pub fn get_initial_state(&self) -> DVector<f64> {
         let mut res = DVector::from_element(self.matrix.ncols(), 0.0);
+        if res.len() == 0 {
+            return res;
+        }
         res[0] = 1.0;
         res
     }
@@ -55,11 +58,6 @@ impl TransitionMatrix {
         if state.len() != self.matrix.nrows() {
             return Err(anyhow::anyhow!("Matrix dimensions do not match"));
         }
-        println!("{}", self.matrix.clone());
-        println!("*");
-        println!("{:?}", state.clone());
-        println!("=");
-        println!("{}", self.matrix.clone() * state.clone());
         Ok(self.matrix.column_iter().zip(state.iter()).fold(
             DVector::from_element(state.len(), 0.0),
             |mut acc, (col, &val)| {
@@ -129,8 +127,6 @@ mod tests {
             (7, 8) => 0.3,
             _ => 0.0,
         });
-        println!("output_matrix: {}", output_matrix);
-        println!("target_matrix: {}", target_matrix);
         assert_eq!(output_matrix.matrix, target_matrix);
     }
 }

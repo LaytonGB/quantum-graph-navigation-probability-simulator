@@ -1,6 +1,9 @@
 use nalgebra::DVector;
 
-use crate::{classical_state_manager::ClassicalStateManager, editors::MatrixEditor};
+use crate::{
+    classical_state_manager::ClassicalStateManager,
+    editors::{Editor, MatrixEditor},
+};
 
 #[derive(Debug, Default)]
 pub struct EditorsContainer {
@@ -106,5 +109,19 @@ impl EditorsContainer {
         if let Some(csm) = self.classical_state_manager.as_mut() {
             csm.reset_state();
         }
+    }
+
+    pub(crate) fn sync_editors(&mut self) {
+        match (
+            self.matrix_editor.as_mut(),
+            self.classical_state_manager.as_mut(),
+        ) {
+            (Some(me), Some(csm)) => {
+                if me.is_canvas_update_ready() {
+                    csm.set_transition_matrix_from(&me.matrix);
+                }
+            }
+            _ => (),
+        };
     }
 }
