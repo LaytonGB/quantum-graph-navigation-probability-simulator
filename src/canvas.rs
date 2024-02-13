@@ -2,6 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use egui::{Align2, Color32, FontId, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points, Text};
+use nalgebra::DVector;
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::canvas_actions::CanvasActions;
@@ -36,6 +37,8 @@ pub struct Canvas {
     pub context_menu_values: ContextMenuValues,
 
     pub action_data: CanvasActions,
+
+    state_data: Option<DVector<f64>>,
 }
 
 impl Canvas {
@@ -472,6 +475,7 @@ impl Canvas {
 
         self.draw_lines(plot_ui, options);
         self.draw_nodes(plot_ui, options);
+        self.draw_state_data(plot_ui, options);
 
         self.reset_values_by_tool(selected_tool);
 
@@ -534,7 +538,8 @@ impl Canvas {
             .data_aspect(1.0)
             .legend(Legend::default())
             .show(ui, |plot_ui| {
-                self.plot_show(plot_ui, selected_tool, options)
+                self.plot_show(plot_ui, selected_tool, options);
+                self.draw_state_data(plot_ui, options);
             });
     }
 
@@ -589,6 +594,26 @@ impl Canvas {
                 }
             })
             .collect()
+    }
+
+    pub(crate) fn add_state_data(&mut self, state_data: Option<DVector<f64>>) {
+        self.state_data = state_data;
+    }
+
+    fn draw_state_data(&self, plot_ui: &mut PlotUi, options: &Options) {
+        if options.mode == Mode::Classical {
+            if let Some(state_data) = &self.state_data {
+                for (node, probability) in self.nodes.iter().zip(state_data.iter()) {
+                    let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
+                    let adjusted_node = plot_ui.plot_from_screen(global_node + [5.0, 5.0].into());
+                    plot_ui.text(
+                        Text::new(adjusted_node.into(), format!("{:.02}", probability))
+                            .color(Color32::WHITE)
+                            .anchor(Align2::LEFT_TOP),
+                    );
+                }
+            }
+        }
     }
 }
 

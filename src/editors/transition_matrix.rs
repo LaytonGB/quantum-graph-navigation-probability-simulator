@@ -1,5 +1,11 @@
-use anyhow::{anyhow, Result};
-use nalgebra::DMatrix;
+use anyhow::Result;
+use nalgebra::{DMatrix, DVector};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NormalizationMode {
+    Stochastic,
+    Unitary,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransitionMatrix {
@@ -32,33 +38,58 @@ impl TryFrom<&DMatrix<f64>> for TransitionMatrix {
                 }
             }
         }
-        Ok(Self { matrix })
+        let mut res = Self { matrix };
+        res.normalize_self(NormalizationMode::Stochastic);
+        Ok(res)
     }
 }
 
 impl TransitionMatrix {
-    pub fn get_initial_state(&self) -> Result<DMatrix<f64>> {
-        let n = self.matrix.nrows();
-        for idx in (0..n).flat_map(|col| (0..n).map(move |row| (row, col))) {
-            if self.matrix[idx] > 0.0 {
-                return {
-                    let mut res = DMatrix::from_element(n, n, 0.0);
-                    res[idx] = 1.0;
-                    Ok(res)
-                };
-            }
-        }
-        Err(anyhow!("Matrix is all zeros"))
+    pub fn get_initial_state(&self) -> DVector<f64> {
+        let mut res = DVector::from_element(self.matrix.ncols(), 0.0);
+        res[0] = 1.0;
+        res
     }
 
-    pub fn apply(&self, other: DMatrix<f64>) -> Result<DMatrix<f64>> {
-        if !other.is_square() {
-            return Err(anyhow::anyhow!("Matrix is not square"));
-        }
-        if other.nrows() != self.matrix.nrows() {
+    pub fn apply(&self, state: DVector<f64>) -> Result<DVector<f64>> {
+        if state.len() != self.matrix.nrows() {
             return Err(anyhow::anyhow!("Matrix dimensions do not match"));
         }
-        Ok(self.matrix.clone() * other)
+        println!("{}", self.matrix.clone());
+        println!("*");
+        println!("{:?}", state.clone());
+        println!("=");
+        println!("{}", self.matrix.clone() * state.clone());
+        Ok(self.matrix.column_iter().zip(state.iter()).fold(
+            DVector::from_element(state.len(), 0.0),
+            |mut acc, (col, &val)| {
+                acc += col * val;
+                acc
+            },
+        ))
+    }
+
+    fn normalize_self(&mut self, normalization_mode: NormalizationMode) {
+        match normalization_mode {
+            NormalizationMode::Stochastic => self.normalize_stochastic(),
+            NormalizationMode::Unitary => self.normalize_unitary(),
+        }
+    }
+
+    fn normalize_stochastic(&mut self) {
+        let n = self.matrix.nrows();
+        for j in 0..n {
+            let sum = self.matrix.column(j).iter().sum::<f64>();
+            if sum > 0.0 {
+                for i in 0..n {
+                    self.matrix[(i, j)] /= sum;
+                }
+            }
+        }
+    }
+
+    fn normalize_unitary(&mut self) {
+        todo!()
     }
 }
 

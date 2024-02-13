@@ -145,7 +145,19 @@ impl EframeApp {
                 if self.options.mode == Mode::Classical {
                     ui.separator();
                     self.editors.show_matrix_editor(ui, self.canvas.nodes.len());
-                    if ui.button("Step").clicked() {}
+
+                    if ui.button("Step").clicked() {
+                        print!("{:?} -> ", self.editors.get_state_data());
+                        self.editors.step_state_forward();
+                        println!("{:?}", self.editors.get_state_data());
+                    }
+                    if ui.button("Reset").clicked() {
+                        self.editors.reset_state();
+                        println!("{:?}", self.editors.get_state_data());
+                    }
+
+                    let state_data = self.editors.get_state_data();
+                    self.canvas.add_state_data(state_data);
                 }
             });
         }
@@ -155,6 +167,8 @@ impl EframeApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.canvas
                 .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
+            let state_data = self.editors.get_state_data();
+            self.canvas.add_state_data(state_data);
         });
     }
 

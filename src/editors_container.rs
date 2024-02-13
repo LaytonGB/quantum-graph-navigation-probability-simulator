@@ -1,3 +1,5 @@
+use nalgebra::DVector;
+
 use crate::{classical_state_manager::ClassicalStateManager, editors::MatrixEditor};
 
 #[derive(Debug, Default)]
@@ -60,9 +62,12 @@ impl EditorsContainer {
             self.matrix_editor = Some(MatrixEditor::new(size));
         }
 
-        match ClassicalStateManager::try_from(&self.matrix_editor.as_ref().unwrap().matrix) {
-            Ok(csm) => self.classical_state_manager = Some(csm),
-            Err(err) => eprintln!("Error: {}", err),
+        if let None = self.classical_state_manager {
+            if let Ok(csm) =
+                ClassicalStateManager::try_from(&self.matrix_editor.as_ref().unwrap().matrix)
+            {
+                self.classical_state_manager = Some(csm);
+            }
         }
     }
 
@@ -89,5 +94,17 @@ impl EditorsContainer {
     pub fn clear_all(&mut self) {
         self.matrix_editor = None;
         self.classical_state_manager = None;
+    }
+
+    pub(crate) fn get_state_data(&self) -> Option<DVector<f64>> {
+        self.classical_state_manager
+            .as_ref()
+            .and_then(|csm| Some(csm.get_state_data()))
+    }
+
+    pub(crate) fn reset_state(&mut self) {
+        if let Some(csm) = self.classical_state_manager.as_mut() {
+            csm.reset_state();
+        }
     }
 }
