@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Error, Result};
 use nalgebra::{DMatrix, DVector};
 
 use crate::editors::transition_matrix::TransitionMatrix;
@@ -10,27 +11,42 @@ pub struct ClassicalStateManager {
 }
 
 impl TryFrom<&DMatrix<f64>> for ClassicalStateManager {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(matrix: &DMatrix<f64>) -> Result<Self, Self::Error> {
         match TransitionMatrix::try_from(matrix) {
             Ok(transition_matrix) => {
                 let initial_state = transition_matrix.get_initial_state();
-                Ok(Self {
+                let mut res = Self {
                     state: initial_state,
                     step: 0,
                     transition_matrix,
-                })
+                };
+
+                // state starts on edge 0,0. this scatters the state to the
+                // relevant edges without adding to steps.
+                match res.step_forward() {
+                    Err(e) => Err(e),
+                    Ok(_) => {
+                        res.step = 0;
+                        Ok(res)
+                    }
+                }
             }
-            Err(e) => Err(e),
+            Err(e) => Err(anyhow!(e)),
         }
     }
 }
 
 impl ClassicalStateManager {
-    pub fn step_forward(&mut self) {
+    pub fn step_forward(&mut self) -> Result<()> {
         self.step += 1;
-        self.state = self.transition_matrix.apply(self.state.clone()).unwrap();
+        if let Ok(updated_state) = self.transition_matrix.apply(self.state.clone()) {
+            self.state = updated_state;
+            Ok(())
+        } else {
+            Err(anyhow!("Failed to apply transition matrix, try updating the transition matrix from the matrix editor"))
+        }
     }
 
     pub(crate) fn get_state_data(&self) -> DVector<f64> {
@@ -56,5 +72,13 @@ impl ClassicalStateManager {
         if let Ok(new_transition_matrix) = TransitionMatrix::try_from(matrix) {
             self.transition_matrix = new_transition_matrix;
         }
+    }
+
+    pub fn get_step(&self) -> usize {
+        self.step
+    }
+
+    pub(crate) fn is_transition_matrix_sized_correctly(&self, nnodes: usize) -> bool {
+        nnodes.pow(2) == self.transition_matrix.matrix.ncols()
     }
 }

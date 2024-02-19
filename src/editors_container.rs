@@ -1,3 +1,4 @@
+use anyhow::Result;
 use nalgebra::DVector;
 
 use crate::{
@@ -55,7 +56,7 @@ impl<'de> serde::Deserialize<'de> for EditorsContainer {
 }
 
 impl EditorsContainer {
-    pub fn show_matrix_editor(&mut self, ui: &mut egui::Ui, size: usize) {
+    pub fn show_all_editors(&mut self, ui: &mut egui::Ui, size: usize) {
         if let Some(matrix_editor) = &mut self.matrix_editor {
             if matrix_editor.matrix.nrows() < size {
                 matrix_editor.resize_matrix(size);
@@ -71,7 +72,32 @@ impl EditorsContainer {
             {
                 self.classical_state_manager = Some(csm);
             }
+        } else if let Some(me) = self.matrix_editor.as_ref() {
+            let csm = self.classical_state_manager.as_mut().unwrap();
+            csm.set_transition_matrix_from(&me.matrix);
         }
+
+        self.show_state_details(ui);
+        self.show_state_buttons(ui);
+    }
+
+    fn show_state_details(&self, ui: &mut egui::Ui) {
+        if let Some(csm) = self.classical_state_manager.as_ref() {
+            ui.label(format!("Step: {:?}", csm.get_step()));
+        }
+    }
+
+    fn show_state_buttons(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("Step").clicked() {
+                if let Err(e) = self.step_state_forward() {
+                    eprintln!("Error stepping state forward, this normally happens when a user clicks Step without deselecting the matrix editor: {}", e);
+                }
+            }
+            if ui.button("Reset").clicked() {
+                self.reset_state();
+            }
+        });
     }
 
     pub fn get_matrix_editor(&self) -> Option<&MatrixEditor> {
@@ -88,9 +114,11 @@ impl EditorsContainer {
         }
     }
 
-    pub fn step_state_forward(&mut self) {
+    pub fn step_state_forward(&mut self) -> Result<()> {
         if let Some(manager) = self.classical_state_manager.as_mut() {
-            manager.step_forward();
+            manager.step_forward()
+        } else {
+            Err(anyhow::anyhow!("No state manager found"))
         }
     }
 
@@ -111,13 +139,13 @@ impl EditorsContainer {
         }
     }
 
-    pub(crate) fn sync_editors(&mut self) {
+    pub(crate) fn sync_editors(&mut self, nnodes: usize) {
         match (
             self.matrix_editor.as_mut(),
             self.classical_state_manager.as_mut(),
         ) {
             (Some(me), Some(csm)) => {
-                if me.is_canvas_update_ready() {
+                if me.is_canvas_update_ready() || csm.is_transition_matrix_sized_correctly(nnodes) {
                     csm.set_transition_matrix_from(&me.matrix);
                 }
             }

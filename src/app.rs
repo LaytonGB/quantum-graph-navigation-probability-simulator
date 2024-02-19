@@ -73,7 +73,7 @@ impl eframe::App for EframeApp {
         //     .insert(0, "arial".to_owned());
         // ctx.set_fonts(fonts);
 
-        self.editors.sync_editors();
+        self.editors.sync_editors(self.canvas.nodes.len());
         self.update_canvas_from_editors();
         self.update_editors_from_canvas();
 
@@ -146,14 +146,7 @@ impl EframeApp {
 
                     if self.options.mode == Mode::Classical {
                         ui.separator();
-                        self.editors.show_matrix_editor(ui, self.canvas.nodes.len());
-
-                        if ui.button("Step").clicked() {
-                            self.editors.step_state_forward();
-                        }
-                        if ui.button("Reset").clicked() {
-                            self.editors.reset_state();
-                        }
+                        self.editors.show_all_editors(ui, self.canvas.nodes.len());
 
                         let state_data = self.editors.get_state_data();
                         self.canvas.add_state_data(state_data);

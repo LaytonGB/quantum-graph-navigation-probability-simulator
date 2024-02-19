@@ -55,16 +55,10 @@ impl TransitionMatrix {
     }
 
     pub fn apply(&self, state: DVector<f64>) -> Result<DVector<f64>> {
-        if state.len() != self.matrix.nrows() {
+        if state.len() != self.matrix.ncols() {
             return Err(anyhow::anyhow!("Matrix dimensions do not match"));
         }
-        Ok(self.matrix.column_iter().zip(state.iter()).fold(
-            DVector::from_element(state.len(), 0.0),
-            |mut acc, (col, &val)| {
-                acc += col * val;
-                acc
-            },
-        ))
+        Ok(&self.matrix * state)
     }
 
     fn normalize_self(&mut self, normalization_mode: NormalizationMode) {
