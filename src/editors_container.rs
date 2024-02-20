@@ -4,6 +4,7 @@ use nalgebra::DVector;
 use crate::{
     classical_state_manager::ClassicalStateManager,
     editors::{Editor, MatrixEditor},
+    options::Options,
 };
 
 #[derive(Debug, Default)]
@@ -139,13 +140,15 @@ impl EditorsContainer {
         }
     }
 
-    pub(crate) fn sync_editors(&mut self, nnodes: usize) {
+    pub(crate) fn sync_editors(&mut self, options: &Options, nnodes: usize) {
         match (
             self.matrix_editor.as_mut(),
             self.classical_state_manager.as_mut(),
         ) {
             (Some(me), Some(csm)) => {
-                if me.is_canvas_update_ready() || csm.is_transition_matrix_sized_correctly(nnodes) {
+                csm.set_start_node_idx(options.generic.start_node_idx);
+                if me.is_canvas_update_ready() || !csm.is_transition_matrix_sized_correctly(nnodes)
+                {
                     csm.set_transition_matrix_from(&me.matrix);
                 }
             }

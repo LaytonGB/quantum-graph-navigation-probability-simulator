@@ -1,6 +1,6 @@
 use egui::{Color32, Ui};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Options {
     pub mode: Mode,
     pub mode_change_data: Option<(Mode, Mode)>,
@@ -36,7 +36,20 @@ impl Options {
 
     pub fn show_generic_options(&mut self, ui: &mut Ui) {
         ui.heading("Generic Options");
-        ui.checkbox(&mut self.generic.revisit_same_node, "Allow self-traversal");
+        ui.horizontal(|ui| {
+            ui.label("Start Node Index");
+            if ui
+                .text_edit_singleline(&mut self.generic.start_node_idx_text_field)
+                .changed()
+            {
+                if let Ok(idx) = self.generic.start_node_idx_text_field.parse::<usize>() {
+                    self.generic.start_node_idx = idx;
+                } else {
+                    self.generic.start_node_idx_text_field =
+                        self.generic.previous_start_node_idx_text_field.clone();
+                }
+            }
+        });
     }
 
     pub fn get_node_color(&self) -> Color32 {
@@ -96,7 +109,7 @@ impl Mode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct ModeOptions {
     pub edit: EditOptions,
     pub classical: ClassicalOptions,
@@ -154,13 +167,25 @@ impl ModeOptionsShow for EditOptions {
     }
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
 pub struct ClassicalOptions {}
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
 pub struct QuantumOptions {}
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
 pub struct GenericComputationOptions {
-    revisit_same_node: bool,
+    pub start_node_idx: usize,
+    pub start_node_idx_text_field: String,
+    pub previous_start_node_idx_text_field: String,
+}
+
+impl Default for GenericComputationOptions {
+    fn default() -> Self {
+        Self {
+            start_node_idx: Default::default(),
+            start_node_idx_text_field: String::from("0"),
+            previous_start_node_idx_text_field: String::from("0"),
+        }
+    }
 }

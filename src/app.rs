@@ -73,7 +73,8 @@ impl eframe::App for EframeApp {
         //     .insert(0, "arial".to_owned());
         // ctx.set_fonts(fonts);
 
-        self.editors.sync_editors(self.canvas.nodes.len());
+        self.editors
+            .sync_editors(&self.options, self.canvas.nodes.len());
         self.update_canvas_from_editors();
         self.update_editors_from_canvas();
 
@@ -139,10 +140,10 @@ impl EframeApp {
                     ui.separator();
                     self.options.show_specific_options(ui);
 
-                    // if self.options.mode != Mode::Edit {
-                    //     ui.separator();
-                    //     self.options.show_generic_options(ui);
-                    // }
+                    if self.options.mode != Mode::Edit {
+                        ui.separator();
+                        self.options.show_generic_options(ui);
+                    }
 
                     if self.options.mode == Mode::Classical {
                         ui.separator();

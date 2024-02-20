@@ -45,12 +45,16 @@ impl TryFrom<&DMatrix<f64>> for TransitionMatrix {
 }
 
 impl TransitionMatrix {
-    pub fn get_initial_state(&self) -> DVector<f64> {
+    pub fn get_initial_state(&self, start_node_idx: &Option<usize>) -> DVector<f64> {
+        let nnodes = (self.matrix.ncols() as f64).sqrt() as usize;
         let mut res = DVector::from_element(self.matrix.ncols(), 0.0);
         if res.len() == 0 {
             return res;
         }
-        res[0] = 1.0;
+        let start_node_idx = start_node_idx
+            .and_then(|x| Some(x * nnodes + x))
+            .unwrap_or(0);
+        res[start_node_idx] = 1.0;
         res
     }
 

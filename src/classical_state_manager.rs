@@ -8,6 +8,7 @@ pub struct ClassicalStateManager {
     state: DVector<f64>,
     step: usize,
     transition_matrix: TransitionMatrix,
+    start_node_idx: Option<usize>,
 }
 
 impl TryFrom<&DMatrix<f64>> for ClassicalStateManager {
@@ -16,11 +17,12 @@ impl TryFrom<&DMatrix<f64>> for ClassicalStateManager {
     fn try_from(matrix: &DMatrix<f64>) -> Result<Self, Self::Error> {
         match TransitionMatrix::try_from(matrix) {
             Ok(transition_matrix) => {
-                let initial_state = transition_matrix.get_initial_state();
+                let initial_state = transition_matrix.get_initial_state(&None);
                 let mut res = Self {
                     state: initial_state,
                     step: 0,
                     transition_matrix,
+                    start_node_idx: None,
                 };
 
                 // state starts on edge 0,0. this scatters the state to the
@@ -54,6 +56,8 @@ impl ClassicalStateManager {
         if nnodes == 0 {
             return DVector::from_element(0, 0.0);
         }
+
+        // sum every nnodes elements to get the state of each node
         DVector::from_iterator(
             nnodes,
             self.state
@@ -65,7 +69,9 @@ impl ClassicalStateManager {
 
     pub(crate) fn reset_state(&mut self) {
         self.step = 0;
-        self.state = self.transition_matrix.get_initial_state();
+        self.state = self
+            .transition_matrix
+            .get_initial_state(&self.start_node_idx);
     }
 
     pub(crate) fn set_transition_matrix_from(&mut self, matrix: &DMatrix<f64>) {
@@ -80,5 +86,9 @@ impl ClassicalStateManager {
 
     pub(crate) fn is_transition_matrix_sized_correctly(&self, nnodes: usize) -> bool {
         nnodes.pow(2) == self.transition_matrix.matrix.ncols()
+    }
+
+    pub(crate) fn set_start_node_idx(&mut self, start_node_idx: usize) {
+        self.start_node_idx = Some(start_node_idx);
     }
 }
