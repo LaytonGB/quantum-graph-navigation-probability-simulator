@@ -1,5 +1,6 @@
+pub mod classical_transition_matrix;
+pub mod complex_transition_matrix;
 mod matrix_editor;
-pub mod transition_matrix;
 pub use matrix_editor::MatrixEditor;
 mod editor;
 pub use editor::Editor;

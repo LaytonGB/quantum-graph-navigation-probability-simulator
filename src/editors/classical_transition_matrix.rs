@@ -8,17 +8,17 @@ pub enum NormalizationMode {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TransitionMatrix {
+pub struct ClassicalTransitionMatrix {
     pub matrix: DMatrix<f64>,
 }
 
-impl std::fmt::Display for TransitionMatrix {
+impl std::fmt::Display for ClassicalTransitionMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.matrix)
     }
 }
 
-impl TryFrom<&DMatrix<f64>> for TransitionMatrix {
+impl TryFrom<&DMatrix<f64>> for ClassicalTransitionMatrix {
     type Error = &'static str;
 
     fn try_from(stochastic_matrix: &DMatrix<f64>) -> Result<Self, Self::Error> {
@@ -39,12 +39,12 @@ impl TryFrom<&DMatrix<f64>> for TransitionMatrix {
             }
         }
         let mut res = Self { matrix };
-        res.normalize_self(NormalizationMode::Stochastic);
+        res.normalize_stochastic();
         Ok(res)
     }
 }
 
-impl TransitionMatrix {
+impl ClassicalTransitionMatrix {
     pub fn get_initial_state(&self, start_node_idx: &Option<usize>) -> DVector<f64> {
         let nnodes = (self.matrix.ncols() as f64).sqrt() as usize;
         let mut res = DVector::from_element(self.matrix.ncols(), 0.0);
@@ -65,13 +65,6 @@ impl TransitionMatrix {
         Ok(&self.matrix * state)
     }
 
-    fn normalize_self(&mut self, normalization_mode: NormalizationMode) {
-        match normalization_mode {
-            NormalizationMode::Stochastic => self.normalize_stochastic(),
-            NormalizationMode::Unitary => self.normalize_unitary(),
-        }
-    }
-
     fn normalize_stochastic(&mut self) {
         let n = self.matrix.nrows();
         for j in 0..n {
@@ -83,15 +76,12 @@ impl TransitionMatrix {
             }
         }
     }
-
-    fn normalize_unitary(&mut self) {
-        todo!()
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_from_stochastic_matrix() {
         let input_matrix = DMatrix::from_fn(3, 3, |i, j| match (i, j) {
@@ -103,7 +93,7 @@ mod tests {
             (2, 1) => 1.0,
             _ => 0.0,
         });
-        let output_matrix = TransitionMatrix::try_from(&input_matrix).unwrap();
+        let output_matrix = ClassicalTransitionMatrix::try_from(&input_matrix).unwrap();
         let target_matrix = DMatrix::from_fn(9, 9, |i, j| match (i, j) {
             (0, 0) => 0.3,
             (0, 3) => 0.3,

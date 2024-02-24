@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Error, Result};
 use nalgebra::{DMatrix, DVector};
 
-use crate::editors::transition_matrix::TransitionMatrix;
+use crate::editors::classical_transition_matrix::ClassicalTransitionMatrix;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClassicalStateManager {
     state: DVector<f64>,
     step: usize,
-    transition_matrix: TransitionMatrix,
+    transition_matrix: ClassicalTransitionMatrix,
     start_node_idx: Option<usize>,
 }
 
@@ -15,7 +15,7 @@ impl TryFrom<&DMatrix<f64>> for ClassicalStateManager {
     type Error = Error;
 
     fn try_from(matrix: &DMatrix<f64>) -> Result<Self, Self::Error> {
-        match TransitionMatrix::try_from(matrix) {
+        match ClassicalTransitionMatrix::try_from(matrix) {
             Ok(transition_matrix) => {
                 let initial_state = transition_matrix.get_initial_state(&None);
                 let mut res = Self {
@@ -75,7 +75,7 @@ impl ClassicalStateManager {
     }
 
     pub(crate) fn set_transition_matrix_from(&mut self, matrix: &DMatrix<f64>) {
-        if let Ok(new_transition_matrix) = TransitionMatrix::try_from(matrix) {
+        if let Ok(new_transition_matrix) = ClassicalTransitionMatrix::try_from(matrix) {
             self.transition_matrix = new_transition_matrix;
         }
     }
