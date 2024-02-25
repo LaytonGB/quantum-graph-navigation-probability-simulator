@@ -135,7 +135,6 @@ impl ComplexMatrixEditor {
         .unwrap()
     }
 
-    // TODO adjust to match new complex number format
     pub(crate) fn resize_matrix(&mut self, size: usize) {
         if self.matrix.nrows() == size {
             return;
@@ -164,7 +163,6 @@ impl ComplexMatrixEditor {
         self.previous_text_fields = self.text_fields.clone();
     }
 
-    // TODO adjust to match new complex number format
     pub(crate) fn remove_node(&mut self, node_idxs: Vec<usize>) {
         let n = node_idxs.len();
         let mut new_matrix = DMatrix::from_element(

@@ -8,6 +8,7 @@ use nalgebra::DMatrix;
 
 use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
+use crate::editors::matrix_editor::MatrixEditor;
 use crate::editors::Editor;
 use crate::options::{Mode, Options};
 use crate::panels::Layout;
@@ -238,9 +239,10 @@ impl EframeApp {
         }
     }
 
+    // TODO enable for complex mode
     fn update_canvas_from_editors(&mut self) {
         if self.options.mode == Mode::Classical && self.options.mode_change_data.is_none() {
-            if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
+            if let MatrixEditor::Classical(matrix_editor) = self.editors.get_matrix_editor_mut() {
                 if matrix_editor.is_canvas_update_ready() {
                     let matrix = &matrix_editor.matrix;
                     let canvas = &mut self.canvas;
@@ -264,6 +266,7 @@ impl EframeApp {
         }
     }
 
+    // TODO enable for complex mode
     fn update_editors_from_canvas(&mut self) {
         if let Some((_, Mode::Classical)) = self.options.mode_change_data {
             if !self.canvas.node_deletion_history.is_empty() {
@@ -271,7 +274,7 @@ impl EframeApp {
                     .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
             }
 
-            if let Some(matrix_editor) = self.editors.get_matrix_editor_mut() {
+            if let MatrixEditor::Classical(matrix_editor) = self.editors.get_matrix_editor_mut() {
                 let matrix = &mut matrix_editor.matrix;
                 let text_fields = &mut matrix_editor.text_fields;
                 let canvas = &self.canvas;

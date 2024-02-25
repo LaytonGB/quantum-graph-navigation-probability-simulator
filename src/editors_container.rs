@@ -3,20 +3,20 @@ use nalgebra::DVector;
 
 use crate::{
     classical_state_manager::ClassicalStateManager,
-    editors::{ClassicalMatrixEditor, Editor},
+    editors::{matrix_editor::MatrixEditor, ClassicalMatrixEditor, ComplexMatrixEditor, Editor},
     options::Options,
 };
 
 #[derive(Debug, Default)]
 pub struct EditorsContainer {
-    matrix_editor: Option<ClassicalMatrixEditor>,
+    matrix_editor: MatrixEditor,
 
     classical_state_manager: Option<ClassicalStateManager>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SerializedEditorsContainer {
-    matrix_editor: Option<ClassicalMatrixEditor>,
+    matrix_editor: MatrixEditor,
 }
 
 impl From<&EditorsContainer> for SerializedEditorsContainer {
@@ -57,23 +57,25 @@ impl<'de> serde::Deserialize<'de> for EditorsContainer {
 }
 
 impl EditorsContainer {
+    // TODO temporarily only using classical with updated MatrixEditor enum
     pub fn show_all_editors(&mut self, ui: &mut egui::Ui, size: usize) {
-        if let Some(matrix_editor) = &mut self.matrix_editor {
+        if let MatrixEditor::Classical(matrix_editor) = &mut self.matrix_editor {
             if matrix_editor.matrix.nrows() < size {
                 matrix_editor.resize_matrix(size);
             }
             matrix_editor.show(ui);
         } else {
-            self.matrix_editor = Some(ClassicalMatrixEditor::new(size));
+            self.matrix_editor = MatrixEditor::Classical(ClassicalMatrixEditor::new(size));
         }
 
+        // TODO refactor, this is written very unclearly
         if let None = self.classical_state_manager {
-            if let Ok(csm) =
-                ClassicalStateManager::try_from(&self.matrix_editor.as_ref().unwrap().matrix)
-            {
-                self.classical_state_manager = Some(csm);
+            if let MatrixEditor::Classical(matrix_editor) = &self.matrix_editor {
+                if let Ok(csm) = ClassicalStateManager::try_from(&matrix_editor.matrix) {
+                    self.classical_state_manager = Some(csm);
+                }
             }
-        } else if let Some(me) = self.matrix_editor.as_ref() {
+        } else if let MatrixEditor::Classical(me) = &self.matrix_editor {
             let csm = self.classical_state_manager.as_mut().unwrap();
             csm.set_transition_matrix_from(&me.matrix);
         }
@@ -101,17 +103,18 @@ impl EditorsContainer {
         });
     }
 
-    pub fn get_matrix_editor(&self) -> Option<&ClassicalMatrixEditor> {
-        self.matrix_editor.as_ref()
+    pub fn get_matrix_editor(&self) -> &MatrixEditor {
+        &self.matrix_editor
     }
 
-    pub fn get_matrix_editor_mut(&mut self) -> Option<&mut ClassicalMatrixEditor> {
-        self.matrix_editor.as_mut()
+    pub fn get_matrix_editor_mut(&mut self) -> &mut MatrixEditor {
+        &mut self.matrix_editor
     }
 
     pub fn remove_nodes(&mut self, node_idxs: Vec<usize>) {
-        if let Some(matrix_editor) = &mut self.matrix_editor {
-            matrix_editor.remove_node(node_idxs);
+        match &mut self.matrix_editor {
+            MatrixEditor::Classical(matrix_editor) => matrix_editor.remove_node(node_idxs),
+            _ => (),
         }
     }
 
@@ -124,7 +127,7 @@ impl EditorsContainer {
     }
 
     pub fn clear_all(&mut self) {
-        self.matrix_editor = None;
+        self.matrix_editor = MatrixEditor::None;
         self.classical_state_manager = None;
     }
 
@@ -140,12 +143,13 @@ impl EditorsContainer {
         }
     }
 
+    // TODO cover classical and complex cases
     pub(crate) fn sync_editors(&mut self, options: &Options, nnodes: usize) {
         match (
-            self.matrix_editor.as_mut(),
+            &mut self.matrix_editor,
             self.classical_state_manager.as_mut(),
         ) {
-            (Some(me), Some(csm)) => {
+            (MatrixEditor::Classical(me), Some(csm)) => {
                 csm.set_start_node_idx(options.generic.start_node_idx);
                 if me.is_canvas_update_ready() || !csm.is_transition_matrix_sized_correctly(nnodes)
                 {
