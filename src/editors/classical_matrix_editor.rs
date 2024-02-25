@@ -4,7 +4,7 @@ use nalgebra::DMatrix;
 use super::Editor;
 
 #[derive(Debug, Clone)]
-pub struct MatrixEditor {
+pub struct ClassicalMatrixEditor {
     pub matrix: DMatrix<f64>,
 
     math_constants: HashMapContext,
@@ -17,7 +17,7 @@ pub struct MatrixEditor {
     is_canvas_update_ready: bool,
 }
 
-impl Editor for MatrixEditor {
+impl Editor for ClassicalMatrixEditor {
     fn is_canvas_update_ready(&self) -> bool {
         self.is_canvas_update_ready
     }
@@ -27,7 +27,7 @@ impl Editor for MatrixEditor {
     }
 }
 
-impl MatrixEditor {
+impl ClassicalMatrixEditor {
     pub fn new(size: usize) -> Self {
         let text_fields = vec![format!("{}", 0.0); size * size];
         Self {
@@ -195,8 +195,8 @@ struct SerializedMatrixEditor {
     matrix: Vec<f64>,
     text_fields: Vec<String>,
 }
-impl From<MatrixEditor> for SerializedMatrixEditor {
-    fn from(m: MatrixEditor) -> Self {
+impl From<ClassicalMatrixEditor> for SerializedMatrixEditor {
+    fn from(m: ClassicalMatrixEditor) -> Self {
         Self {
             size: m.matrix.nrows(),
             matrix: m.matrix.as_slice().to_vec(),
@@ -204,7 +204,7 @@ impl From<MatrixEditor> for SerializedMatrixEditor {
         }
     }
 }
-impl From<SerializedMatrixEditor> for MatrixEditor {
+impl From<SerializedMatrixEditor> for ClassicalMatrixEditor {
     fn from(m: SerializedMatrixEditor) -> Self {
         Self {
             matrix: DMatrix::from_vec(m.size, m.size, m.matrix),
@@ -216,12 +216,12 @@ impl From<SerializedMatrixEditor> for MatrixEditor {
         }
     }
 }
-impl serde::Serialize for MatrixEditor {
+impl serde::Serialize for ClassicalMatrixEditor {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         SerializedMatrixEditor::from(self.clone()).serialize(serializer)
     }
 }
-impl<'de> serde::Deserialize<'de> for MatrixEditor {
+impl<'de> serde::Deserialize<'de> for ClassicalMatrixEditor {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         SerializedMatrixEditor::deserialize(deserializer).map(Self::from)
     }

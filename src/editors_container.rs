@@ -3,20 +3,20 @@ use nalgebra::DVector;
 
 use crate::{
     classical_state_manager::ClassicalStateManager,
-    editors::{Editor, MatrixEditor},
+    editors::{ClassicalMatrixEditor, Editor},
     options::Options,
 };
 
 #[derive(Debug, Default)]
 pub struct EditorsContainer {
-    matrix_editor: Option<MatrixEditor>,
+    matrix_editor: Option<ClassicalMatrixEditor>,
 
     classical_state_manager: Option<ClassicalStateManager>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SerializedEditorsContainer {
-    matrix_editor: Option<MatrixEditor>,
+    matrix_editor: Option<ClassicalMatrixEditor>,
 }
 
 impl From<&EditorsContainer> for SerializedEditorsContainer {
@@ -64,7 +64,7 @@ impl EditorsContainer {
             }
             matrix_editor.show(ui);
         } else {
-            self.matrix_editor = Some(MatrixEditor::new(size));
+            self.matrix_editor = Some(ClassicalMatrixEditor::new(size));
         }
 
         if let None = self.classical_state_manager {
@@ -101,11 +101,11 @@ impl EditorsContainer {
         });
     }
 
-    pub fn get_matrix_editor(&self) -> Option<&MatrixEditor> {
+    pub fn get_matrix_editor(&self) -> Option<&ClassicalMatrixEditor> {
         self.matrix_editor.as_ref()
     }
 
-    pub fn get_matrix_editor_mut(&mut self) -> Option<&mut MatrixEditor> {
+    pub fn get_matrix_editor_mut(&mut self) -> Option<&mut ClassicalMatrixEditor> {
         self.matrix_editor.as_mut()
     }
 
