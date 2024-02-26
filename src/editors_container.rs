@@ -2,8 +2,10 @@ use anyhow::Result;
 use nalgebra::DVector;
 
 use crate::{
-    classical_state_manager::ClassicalStateManager,
-    editors::{matrix_editor::MatrixEditor, ClassicalMatrixEditor, ComplexMatrixEditor, Editor},
+    editors::{
+        matrix_editor::MatrixEditor, state_manager::StateManager, ClassicalMatrixEditor,
+        ClassicalStateManager, ComplexMatrixEditor, ComplexStateManager, Editor,
+    },
     options::Options,
 };
 
@@ -11,7 +13,7 @@ use crate::{
 pub struct EditorsContainer {
     matrix_editor: MatrixEditor,
 
-    classical_state_manager: Option<ClassicalStateManager>,
+    state_manager: StateManager,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -57,9 +59,13 @@ impl<'de> serde::Deserialize<'de> for EditorsContainer {
 }
 
 impl EditorsContainer {
-    // TODO temporarily only using classical with updated MatrixEditor enum
     pub fn show_all_editors(&mut self, ui: &mut egui::Ui, size: usize) {
         if let MatrixEditor::Classical(matrix_editor) = &mut self.matrix_editor {
+            if matrix_editor.matrix.nrows() < size {
+                matrix_editor.resize_matrix(size);
+            }
+            matrix_editor.show(ui);
+        } else if let MatrixEditor::Complex(matrix_editor) = &mut self.matrix_editor {
             if matrix_editor.matrix.nrows() < size {
                 matrix_editor.resize_matrix(size);
             }
@@ -69,15 +75,21 @@ impl EditorsContainer {
         }
 
         // TODO refactor, this is written very unclearly
-        if let None = self.classical_state_manager {
+        if let StateManager::None = self.state_manager {
             if let MatrixEditor::Classical(matrix_editor) = &self.matrix_editor {
                 if let Ok(csm) = ClassicalStateManager::try_from(&matrix_editor.matrix) {
-                    self.classical_state_manager = Some(csm);
+                    self.state_manager = StateManager::Classical(csm);
+                }
+            } else if let MatrixEditor::Complex(matrix_editor) = &self.matrix_editor {
+                if let Ok(csm) = ComplexStateManager::try_from(&matrix_editor.matrix) {
+                    self.state_manager = StateManager::Complex(csm);
                 }
             }
         } else if let MatrixEditor::Classical(me) = &self.matrix_editor {
-            let csm = self.classical_state_manager.as_mut().unwrap();
-            csm.set_transition_matrix_from(&me.matrix);
+            match &mut self.state_manager {
+                StateManager::Classical(csm) => csm.set_transition_matrix_from(&me.matrix),
+                _ => panic!("Mismatched state manager and matrix editor, MatrixEditor:Classical, StateManager:Complex or None"),
+            }
         }
 
         self.show_state_details(ui);
@@ -85,8 +97,14 @@ impl EditorsContainer {
     }
 
     fn show_state_details(&self, ui: &mut egui::Ui) {
-        if let Some(csm) = self.classical_state_manager.as_ref() {
-            ui.label(format!("Step: {:?}", csm.get_step()));
+        match &self.state_manager {
+            StateManager::None => (),
+            StateManager::Classical(csm) => {
+                ui.label(format!("Step: {:?}", csm.get_step()));
+            }
+            StateManager::Complex(csm) => {
+                ui.label(format!("Step: {:?}", csm.get_step()));
+            }
         }
     }
 
@@ -119,37 +137,38 @@ impl EditorsContainer {
     }
 
     pub fn step_state_forward(&mut self) -> Result<()> {
-        if let Some(manager) = self.classical_state_manager.as_mut() {
-            manager.step_forward()
-        } else {
-            Err(anyhow::anyhow!("No state manager found"))
+        match &mut self.state_manager {
+            StateManager::Classical(csm) => csm.step_forward(),
+            StateManager::Complex(csm) => csm.step_forward(),
+            StateManager::None => Err(anyhow::anyhow!("No state manager found")),
         }
     }
 
     pub fn clear_all(&mut self) {
         self.matrix_editor = MatrixEditor::None;
-        self.classical_state_manager = None;
+        self.state_manager = StateManager::None;
     }
 
     pub(crate) fn get_state_data(&self) -> Option<DVector<f64>> {
-        self.classical_state_manager
-            .as_ref()
-            .and_then(|csm| Some(csm.get_state_data()))
+        match &self.state_manager {
+            StateManager::Classical(csm) => Some(csm.get_state_data()),
+            StateManager::Complex(csm) => Some(csm.get_state_data()),
+            _ => None,
+        }
     }
 
     pub(crate) fn reset_state(&mut self) {
-        if let Some(csm) = self.classical_state_manager.as_mut() {
-            csm.reset_state();
+        match &mut self.state_manager {
+            StateManager::Classical(csm) => csm.reset_state(),
+            StateManager::Complex(csm) => csm.reset_state(),
+            StateManager::None => (),
         }
     }
 
     // TODO cover classical and complex cases
     pub(crate) fn sync_editors(&mut self, options: &Options, nnodes: usize) {
-        match (
-            &mut self.matrix_editor,
-            self.classical_state_manager.as_mut(),
-        ) {
-            (MatrixEditor::Classical(me), Some(csm)) => {
+        match (&mut self.matrix_editor, &mut self.state_manager) {
+            (MatrixEditor::Classical(me), StateManager::Classical(csm)) => {
                 csm.set_start_node_idx(options.generic.start_node_idx);
                 if me.is_canvas_update_ready() || !csm.is_transition_matrix_sized_correctly(nnodes)
                 {

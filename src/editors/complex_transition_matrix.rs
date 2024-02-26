@@ -1,16 +1,43 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error, Result};
 use nalgebra::{Complex, DMatrix, DVector, Dyn};
 
 use crate::transition_matrix_correction_type::TransitionMatrixCorrectionType;
 
+#[derive(Debug, Clone)]
 pub struct ComplexTransitionMatrix {
-    matrix: DMatrix<Complex<f64>>,
+    pub matrix: DMatrix<Complex<f64>>,
     max_error: f64,
 }
 
 impl std::fmt::Display for ComplexTransitionMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.matrix)
+    }
+}
+
+impl TryFrom<&DMatrix<Complex<f64>>> for ComplexTransitionMatrix {
+    type Error = Error;
+
+    fn try_from(stochastic_matrix: &DMatrix<Complex<f64>>) -> Result<Self, Self::Error> {
+        if !stochastic_matrix.is_square() {
+            return Err(anyhow!("Matrix is not square"));
+        }
+
+        let n = stochastic_matrix.nrows();
+        let m = n.pow(2);
+        let mut matrix = DMatrix::from_element(m, m, Complex::new(0.0, 0.0));
+        for col_offset in 0..n {
+            for j in 0..n {
+                for i in 0..n {
+                    let row = i + (j % n) * n;
+                    let col = j + col_offset * n;
+                    matrix[(row, col)] = stochastic_matrix[(i, j)];
+                }
+            }
+        }
+        let mut res = Self::new(matrix)?;
+        res.normalize_unitary();
+        Ok(res)
     }
 }
 
@@ -23,6 +50,26 @@ impl ComplexTransitionMatrix {
             matrix,
             max_error: 1e-10,
         })
+    }
+
+    pub fn get_initial_state(&self, start_node_idx: &Option<usize>) -> DVector<Complex<f64>> {
+        let nnodes = (self.matrix.ncols() as f64).sqrt() as usize;
+        let mut res = DVector::from_element(self.matrix.ncols(), Complex::new(0.0, 0.0));
+        if res.len() == 0 {
+            return res;
+        }
+        let start_node_idx = start_node_idx
+            .and_then(|x| Some(x * nnodes + x))
+            .unwrap_or(0);
+        res[start_node_idx] = Complex::new(1.0, 0.0);
+        res
+    }
+
+    pub fn apply(&self, state: DVector<Complex<f64>>) -> Result<DVector<Complex<f64>>> {
+        if state.len() != self.matrix.ncols() {
+            return Err(anyhow!("Matrix dimensions do not match"));
+        }
+        Ok(&self.matrix * state)
     }
 
     pub fn normalize_unitary(&mut self) -> TransitionMatrixCorrectionType {
