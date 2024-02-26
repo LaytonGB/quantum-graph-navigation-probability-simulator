@@ -74,6 +74,10 @@ impl ComplexTransitionMatrix {
 
     pub fn normalize_unitary(&mut self) -> TransitionMatrixCorrectionType {
         let n = self.matrix.nrows();
+        if n == 0 {
+            return TransitionMatrixCorrectionType::None;
+        }
+
         let mut correction_vals = DVector::from_element(n, 0.0);
         let mut svd = self.matrix.clone().svd(true, true);
         svd.singular_values

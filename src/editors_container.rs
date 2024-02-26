@@ -59,36 +59,43 @@ impl<'de> serde::Deserialize<'de> for EditorsContainer {
 }
 
 impl EditorsContainer {
-    pub fn show_all_editors(&mut self, ui: &mut egui::Ui, size: usize) {
-        if let MatrixEditor::Classical(matrix_editor) = &mut self.matrix_editor {
-            if matrix_editor.matrix.nrows() < size {
-                matrix_editor.resize_matrix(size);
-            }
-            matrix_editor.show(ui);
-        } else if let MatrixEditor::Complex(matrix_editor) = &mut self.matrix_editor {
-            if matrix_editor.matrix.nrows() < size {
-                matrix_editor.resize_matrix(size);
-            }
-            matrix_editor.show(ui);
-        } else {
+    pub fn show_classical_editors(&mut self, ui: &mut egui::Ui, size: usize) {
+        if !self.matrix_editor.is_classical() {
             self.matrix_editor = MatrixEditor::Classical(ClassicalMatrixEditor::new(size));
         }
 
-        // TODO refactor, this is written very unclearly
-        if let StateManager::None = self.state_manager {
-            if let MatrixEditor::Classical(matrix_editor) = &self.matrix_editor {
-                if let Ok(csm) = ClassicalStateManager::try_from(&matrix_editor.matrix) {
-                    self.state_manager = StateManager::Classical(csm);
-                }
-            } else if let MatrixEditor::Complex(matrix_editor) = &self.matrix_editor {
-                if let Ok(csm) = ComplexStateManager::try_from(&matrix_editor.matrix) {
-                    self.state_manager = StateManager::Complex(csm);
-                }
+        if let MatrixEditor::Classical(cme) = &mut self.matrix_editor {
+            if cme.matrix.nrows() < size {
+                cme.resize_matrix(size);
             }
-        } else if let MatrixEditor::Classical(me) = &self.matrix_editor {
-            match &mut self.state_manager {
-                StateManager::Classical(csm) => csm.set_transition_matrix_from(&me.matrix),
-                _ => panic!("Mismatched state manager and matrix editor, MatrixEditor:Classical, StateManager:Complex or None"),
+            cme.show(ui);
+
+            if let StateManager::Classical(csm) = &mut self.state_manager {
+                csm.set_transition_matrix_from(&cme.matrix);
+            } else if let Ok(csm) = ClassicalStateManager::try_from(&cme.matrix) {
+                self.state_manager = StateManager::Classical(csm);
+            }
+        }
+
+        self.show_state_details(ui);
+        self.show_state_buttons(ui);
+    }
+
+    pub fn show_quantum_editors(&mut self, ui: &mut egui::Ui, size: usize) {
+        if !self.matrix_editor.is_complex() {
+            self.matrix_editor = MatrixEditor::Complex(ComplexMatrixEditor::new(size));
+        }
+
+        if let MatrixEditor::Complex(cme) = &mut self.matrix_editor {
+            if cme.matrix.nrows() < size {
+                cme.resize_matrix(size);
+            }
+            cme.show(ui);
+
+            if let StateManager::Complex(csm) = &mut self.state_manager {
+                csm.set_transition_matrix_from(&cme.matrix);
+            } else if let Ok(csm) = ComplexStateManager::try_from(&cme.matrix) {
+                self.state_manager = StateManager::Complex(csm);
             }
         }
 

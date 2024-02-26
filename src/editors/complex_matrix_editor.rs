@@ -60,8 +60,9 @@ impl ComplexMatrixEditor {
         }
 
         ui.label("");
-        for i in 0..self.matrix.ncols() {
+        for i in (0..self.matrix.ncols()) {
             ui.label(format!("{}", i));
+            ui.label("");
         }
         ui.end_row();
 
