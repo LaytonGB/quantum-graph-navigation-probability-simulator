@@ -73,9 +73,8 @@ impl Options {
             return;
         }
 
-        let old_mode = self.mode;
+        self.mode_change_data = Some((self.mode, mode));
         self.mode = mode;
-        self.mode_change_data = Some((old_mode, mode));
     }
 
     pub fn clear_mode_change_data(&mut self) {

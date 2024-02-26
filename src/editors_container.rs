@@ -139,6 +139,7 @@ impl EditorsContainer {
     pub fn remove_nodes(&mut self, node_idxs: Vec<usize>) {
         match &mut self.matrix_editor {
             MatrixEditor::Classical(matrix_editor) => matrix_editor.remove_node(node_idxs),
+            MatrixEditor::Complex(matrix_editor) => matrix_editor.remove_node(node_idxs),
             _ => (),
         }
     }
@@ -172,10 +173,16 @@ impl EditorsContainer {
         }
     }
 
-    // TODO cover classical and complex cases
     pub(crate) fn sync_editors(&mut self, options: &Options, nnodes: usize) {
         match (&mut self.matrix_editor, &mut self.state_manager) {
             (MatrixEditor::Classical(me), StateManager::Classical(csm)) => {
+                csm.set_start_node_idx(options.generic.start_node_idx);
+                if me.is_canvas_update_ready() || !csm.is_transition_matrix_sized_correctly(nnodes)
+                {
+                    csm.set_transition_matrix_from(&me.matrix);
+                }
+            }
+            (MatrixEditor::Complex(me), StateManager::Complex(csm)) => {
                 csm.set_start_node_idx(options.generic.start_node_idx);
                 if me.is_canvas_update_ready() || !csm.is_transition_matrix_sized_correctly(nnodes)
                 {
