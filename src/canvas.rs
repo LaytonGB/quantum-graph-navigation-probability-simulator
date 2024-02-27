@@ -601,7 +601,7 @@ impl Canvas {
     }
 
     fn draw_state_data(&self, plot_ui: &mut PlotUi, options: &Options) {
-        if options.mode == Mode::Classical {
+        if options.mode != Mode::Edit {
             if let Some(state_data) = &self.state_data {
                 for (node, probability) in self.nodes.iter().zip(state_data.iter()) {
                     let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());

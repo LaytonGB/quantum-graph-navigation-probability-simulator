@@ -58,14 +58,15 @@ impl ComplexStateManager {
         }
 
         // sum every nnodes elements to get the state of each node
-        // BUG this is not the correct way to sum the elements
-        DVector::from_iterator(
+        // BUG is this the correct way to sum the elements?
+        let res = DVector::from_iterator(
             nnodes,
             self.state
                 .as_slice()
                 .chunks(nnodes)
                 .map(|x| x.into_iter().map(|x| x.l1_norm()).sum::<f64>()),
-        )
+        );
+        res.iter().sum::<f64>().powi(-1) * res
     }
 
     pub(crate) fn reset_state(&mut self) {
