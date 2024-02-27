@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Error, Result};
 use nalgebra::{Complex, DMatrix, DVector, Dyn};
 
-use crate::transition_matrix_correction_type::TransitionMatrixCorrectionType;
+use super::transition_matrix_correction_type::TransitionMatrixCorrectionType;
 
 #[derive(Debug, Clone)]
 pub struct ComplexTransitionMatrix {

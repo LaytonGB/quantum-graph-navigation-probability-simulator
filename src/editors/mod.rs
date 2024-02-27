@@ -8,6 +8,7 @@ pub mod classical_transition_matrix;
 pub mod complex_transition_matrix;
 pub mod matrix_editor;
 pub mod state_manager;
+pub mod transition_matrix_correction_type;
 
 pub use classical_matrix_editor::ClassicalMatrixEditor;
 pub use classical_state_manager::ClassicalStateManager;
