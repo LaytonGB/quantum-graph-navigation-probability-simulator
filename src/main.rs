@@ -1,26 +1,11 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-// TODO move distance checks into node and line find funcs
-// TODO remove utils.rs ?
-// TODO add code for a linear random walk
-//   TODO give nodes unique labels
-//     TODO check for uniqueness
-//   TODO hide left panel when not in edit mode ?
-//   TODO deselect tools / force new tool when not in edit mode
-
-// GraphNode lookup problem
-// - likely requires HashMap to lookup placed nodes
-// - HashMap requires Eq and Hash traits
-// - floats do not have these traits
-// - - problem solved in this crate by implementing those traits manually
-// - - C:\Users\layto\.cargo\registry\src\index.crates.io-6f17d22bba15001f\
-//   epaint-0.23.0\src\util\ordered_float.rs
-// - for now, will be searching coords from vec
-
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
+    std::env::set_var("RUST_BACKTRACE", "1"); // show backtrace in case of crash
+
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let native_options = eframe::NativeOptions {

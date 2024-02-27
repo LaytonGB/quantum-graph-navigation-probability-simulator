@@ -29,9 +29,11 @@ impl Editor for ComplexMatrixEditor {
 
 impl ComplexMatrixEditor {
     pub fn new(size: usize) -> Self {
-        let text_fields = vec![(format!("{}", 0.0), format!("{}", 0.0)); size * size];
+        println!("CREATING COMPLEX MATRIX EDITOR");
+        let n = size * size;
+        let text_fields = vec![(format!("{}", 0.0), format!("{}", 0.0)); n * n];
         Self {
-            matrix: DMatrix::from_element(size, size, Complex::new(0.0, 0.0)),
+            matrix: DMatrix::from_element(n, n, Complex::new(0.0, 0.0)),
             math_constants: Self::get_math_constants(),
             previous_text_fields: text_fields.clone(),
             text_fields,
@@ -59,16 +61,26 @@ impl ComplexMatrixEditor {
             return;
         }
 
+        let n = (self.matrix.nrows() as f64).sqrt() as usize;
         ui.label("");
-        for i in 0..self.matrix.ncols() {
-            ui.label(format!("{}", i));
-            ui.label("");
+        for i in 0..n {
+            for j in 0..n {
+                ui.label(format!("{}->{}", i, j));
+                ui.label("");
+            }
         }
         ui.end_row();
 
+        let (mut n1, mut n2) = (0, 0);
         for i in 0..self.text_fields.len() {
             if i % self.matrix.ncols() == 0 {
-                ui.label(format!("{}", i / self.matrix.ncols()));
+                ui.label(format!("{}->{}", n1, n2));
+
+                n2 += 1;
+                if n2 == n {
+                    n1 += 1;
+                    n2 = 0;
+                }
             }
 
             let re = ui.text_edit_singleline(&mut self.text_fields[i].0);

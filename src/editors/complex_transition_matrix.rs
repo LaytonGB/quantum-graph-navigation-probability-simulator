@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Result};
 use nalgebra::{Complex, DMatrix, DVector, Dyn};
 
 use super::transition_matrix_correction_type::TransitionMatrixCorrectionType;
@@ -12,32 +12,6 @@ pub struct ComplexTransitionMatrix {
 impl std::fmt::Display for ComplexTransitionMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.matrix)
-    }
-}
-
-impl TryFrom<&DMatrix<Complex<f64>>> for ComplexTransitionMatrix {
-    type Error = Error;
-
-    fn try_from(stochastic_matrix: &DMatrix<Complex<f64>>) -> Result<Self, Self::Error> {
-        if !stochastic_matrix.is_square() {
-            return Err(anyhow!("Matrix is not square"));
-        }
-
-        let n = stochastic_matrix.nrows();
-        let m = n.pow(2);
-        let mut matrix = DMatrix::from_element(m, m, Complex::new(0.0, 0.0));
-        for col_offset in 0..n {
-            for j in 0..n {
-                for i in 0..n {
-                    let row = i + (j % n) * n;
-                    let col = j + col_offset * n;
-                    matrix[(row, col)] = stochastic_matrix[(i, j)];
-                }
-            }
-        }
-        let mut res = Self::new(matrix)?;
-        res.normalize_unitary();
-        Ok(res)
     }
 }
 

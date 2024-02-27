@@ -25,6 +25,7 @@ impl TryFrom<&DMatrix<f64>> for ClassicalStateManager {
                     start_node_idx: None,
                 };
 
+                // TODO implement for reset button also
                 // state starts on edge 0,0. this scatters the state to the
                 // relevant edges without adding to steps.
                 match res.step_forward() {

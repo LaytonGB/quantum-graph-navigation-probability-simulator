@@ -15,7 +15,7 @@ impl TryFrom<&DMatrix<Complex<f64>>> for ComplexStateManager {
     type Error = Error;
 
     fn try_from(matrix: &DMatrix<Complex<f64>>) -> Result<Self, Self::Error> {
-        match ComplexTransitionMatrix::try_from(matrix) {
+        match ComplexTransitionMatrix::new(matrix.clone()) {
             Ok(transition_matrix) => {
                 let initial_state = transition_matrix.get_initial_state(&None);
                 let mut res = Self {
@@ -25,14 +25,15 @@ impl TryFrom<&DMatrix<Complex<f64>>> for ComplexStateManager {
                     start_node_idx: None,
                 };
 
+                // TODO implement for reset button also
                 // state starts on edge 0,0. this scatters the state to the
                 // relevant edges without adding to steps.
                 match res.step_forward() {
-                    Err(e) => Err(e),
                     Ok(_) => {
                         res.step = 0;
                         Ok(res)
                     }
+                    Err(e) => Err(e),
                 }
             }
             Err(e) => Err(anyhow!(e)),
@@ -59,12 +60,16 @@ impl ComplexStateManager {
 
         // sum every nnodes elements to get the state of each node
         // BUG is this the correct way to sum the elements?
+        // BUG adjust chunk sizing based on resized matrix
+        dbg!(nnodes);
+        dbg!(&self.state);
         let res = DVector::from_iterator(
             nnodes,
-            self.state
+            dbg!(self
+                .state
                 .as_slice()
                 .chunks(nnodes)
-                .map(|x| x.into_iter().map(|x| x.l1_norm()).sum::<f64>()),
+                .map(|x| x.into_iter().map(|x| x.norm_sqr().sqrt()).sum::<f64>())),
         );
         res.iter().sum::<f64>().powi(-1) * res
     }
@@ -77,7 +82,7 @@ impl ComplexStateManager {
     }
 
     pub(crate) fn set_transition_matrix_from(&mut self, matrix: &DMatrix<Complex<f64>>) {
-        if let Ok(new_transition_matrix) = ComplexTransitionMatrix::try_from(matrix) {
+        if let Ok(new_transition_matrix) = ComplexTransitionMatrix::new(matrix.clone()) {
             self.transition_matrix = new_transition_matrix;
         }
     }
