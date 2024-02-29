@@ -29,7 +29,6 @@ impl Editor for ComplexMatrixEditor {
 
 impl ComplexMatrixEditor {
     pub fn new(size: usize) -> Self {
-        println!("CREATING COMPLEX MATRIX EDITOR");
         let n = size * size;
         let text_fields = vec![(format!("{}", 0.0), format!("{}", 0.0)); n * n];
         Self {
