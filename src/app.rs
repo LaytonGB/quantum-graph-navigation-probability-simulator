@@ -145,7 +145,6 @@ impl EframeApp {
                         self.options.show_generic_options(ui);
                     }
 
-                    dbg!(&self.options.mode);
                     match self.options.mode {
                         Mode::Classical => {
                             ui.separator();

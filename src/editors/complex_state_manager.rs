@@ -61,15 +61,12 @@ impl ComplexStateManager {
         // sum every nnodes elements to get the state of each node
         // BUG is this the correct way to sum the elements?
         // BUG adjust chunk sizing based on resized matrix
-        dbg!(nnodes);
-        dbg!(&self.state);
         let res = DVector::from_iterator(
             nnodes,
-            dbg!(self
-                .state
+            self.state
                 .as_slice()
                 .chunks(nnodes)
-                .map(|x| x.into_iter().map(|x| x.norm_sqr().sqrt()).sum::<f64>())),
+                .map(|x| x.into_iter().map(|x| x.norm_sqr().sqrt()).sum::<f64>()),
         );
         res.iter().sum::<f64>().powi(-1) * res
     }
