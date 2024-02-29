@@ -6,8 +6,6 @@ pub mod canvas_actions;
 pub mod constants;
 pub mod context_menu;
 pub mod editors;
-mod editors_container;
-pub use editors_container::EditorsContainer;
 pub mod graph_line;
 pub mod graph_node;
 pub mod options;

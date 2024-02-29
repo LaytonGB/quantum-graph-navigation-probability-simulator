@@ -3,9 +3,10 @@ use std::{cell::RefCell, num::ParseFloatError, rc::Rc};
 use egui::Ui;
 
 use crate::canvas::Canvas;
+use crate::editors::EditorsContainer;
 use crate::graph_line::GraphLine;
 use crate::graph_node::GraphNode;
-use crate::{EditorsContainer, EframeApp};
+use crate::EframeApp;
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize, Debug)]
 pub struct CanvasActions {

@@ -1,17 +1,23 @@
 mod classical_matrix_editor;
 mod classical_state_manager;
+mod classical_transition_matrix;
 mod complex_matrix_editor;
 mod complex_state_manager;
+mod complex_transition_matrix;
 mod editor;
-
-pub mod classical_transition_matrix;
-pub mod complex_transition_matrix;
-pub mod matrix_editor;
-pub mod state_manager;
-pub mod transition_matrix_correction_type;
+mod editors_container;
+mod matrix_editor;
+mod state_manager;
+mod transition_matrix_correction_type;
 
 pub use classical_matrix_editor::ClassicalMatrixEditor;
 pub use classical_state_manager::ClassicalStateManager;
+pub use classical_transition_matrix::ClassicalTransitionMatrix;
 pub use complex_matrix_editor::ComplexMatrixEditor;
 pub use complex_state_manager::ComplexStateManager;
+pub use complex_transition_matrix::ComplexTransitionMatrix;
 pub use editor::Editor;
+pub use editors_container::EditorsContainer;
+pub use matrix_editor::MatrixEditor;
+pub use state_manager::StateManager;
+pub use transition_matrix_correction_type::TransitionMatrixCorrectionType;

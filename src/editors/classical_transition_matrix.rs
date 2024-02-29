@@ -1,11 +1,7 @@
 use anyhow::Result;
 use nalgebra::{DMatrix, DVector};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NormalizationMode {
-    Stochastic,
-    Unitary,
-}
+use super::TransitionMatrixCorrectionType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClassicalTransitionMatrix {
@@ -65,16 +61,37 @@ impl ClassicalTransitionMatrix {
         Ok(&self.matrix * state)
     }
 
-    fn normalize_stochastic(&mut self) {
+    fn normalize_stochastic(&mut self) -> TransitionMatrixCorrectionType {
         let n = self.matrix.nrows();
+
+        let mut res = TransitionMatrixCorrectionType::None;
         for j in 0..n {
             let sum = self.matrix.column(j).iter().sum::<f64>();
-            if sum > 0.0 {
+            if sum != 1.0 {
+                match res {
+                    TransitionMatrixCorrectionType::None => {
+                        res = TransitionMatrixCorrectionType::Scalar(1.0 / sum)
+                    }
+                    TransitionMatrixCorrectionType::Scalar(prev_res) => {
+                        res = TransitionMatrixCorrectionType::NonScalar(DVector::from_fn(
+                            n,
+                            |row, col| match row {
+                                _ if col == j - 1 => prev_res,
+                                _ if col == j => 1.0 / sum,
+                                _ => 0.0,
+                            },
+                        ));
+                    }
+                    TransitionMatrixCorrectionType::NonScalar(ref mut res) => res[j] = 1.0 / sum,
+                }
+
                 for i in 0..n {
                     self.matrix[(i, j)] /= sum;
                 }
             }
         }
+
+        res
     }
 }
 

@@ -6,12 +6,10 @@ use nalgebra::{Complex, DMatrix};
 
 use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
-use crate::editors::matrix_editor::MatrixEditor;
-use crate::editors::Editor;
+use crate::editors::{Editor, EditorsContainer, MatrixEditor};
 use crate::options::{Mode, Options};
 use crate::panels::Layout;
 use crate::tool::Tool;
-use crate::EditorsContainer;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
