@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use evalexpr::{context_map, eval_with_context, HashMapContext, Value};
 use nalgebra::DMatrix;
 
@@ -93,21 +95,9 @@ impl ClassicalMatrixEditor {
                 }
             };
         }
-        self.normalize_columns();
         self.previous_text_fields = self.text_fields.clone();
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
-    }
-
-    fn normalize_columns(&mut self) {
-        for j in 0..self.matrix.ncols() {
-            let sum = self.matrix.column(j).iter().sum::<f64>();
-            if sum > 0.0 {
-                for i in 0..self.matrix.nrows() {
-                    self.matrix[(i, j)] /= sum;
-                }
-            }
-        }
     }
 
     fn set_ith_element(&mut self, i: usize, value: f64) {
@@ -186,6 +176,34 @@ impl ClassicalMatrixEditor {
         self.matrix = new_matrix;
         self.text_fields = new_text_fields;
         self.previous_text_fields = self.text_fields.clone();
+    }
+
+    pub(crate) fn update_from_canvas_edges(&mut self, edges: &Vec<(usize, usize)>) {
+        let matrix = &mut self.matrix;
+
+        let edges: HashSet<(usize, usize)> = HashSet::from_iter(edges.iter().cloned());
+        for i in 0..matrix.nrows() {
+            for j in 0..matrix.ncols() {
+                if i == j {
+                    continue;
+                }
+
+                let matrix_edge_exists = matrix[(i, j)] != 0.0 || matrix[(j, i)] != 0.0;
+                let canvas_edge_exists = edges.contains(&(i, j)) || edges.contains(&(j, i));
+
+                if matrix_edge_exists && !canvas_edge_exists {
+                    matrix[(i, j)] = 0.0;
+                    matrix[(j, i)] = 0.0;
+                    self.text_fields[i * matrix.nrows() + j] = format!("{}", 0.0);
+                    self.text_fields[j * matrix.nrows() + i] = format!("{}", 0.0);
+                } else if !matrix_edge_exists && canvas_edge_exists {
+                    matrix[(i, j)] = 1.0;
+                    matrix[(j, i)] = 1.0;
+                    self.text_fields[i * matrix.nrows() + j] = format!("{}", 1.0);
+                    self.text_fields[j * matrix.nrows() + i] = format!("{}", 1.0);
+                }
+            }
+        }
     }
 }
 

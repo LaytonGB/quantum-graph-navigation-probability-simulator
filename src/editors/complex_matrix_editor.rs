@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use evalexpr::{context_map, eval_with_context, HashMapContext, Value};
 use nalgebra::{Complex, DMatrix};
 
@@ -175,6 +177,7 @@ impl ComplexMatrixEditor {
         self.previous_text_fields = self.text_fields.clone();
     }
 
+    // BUG this doesn't work with the double-edge adjacency matrix
     pub(crate) fn remove_node(&mut self, node_idxs: Vec<usize>) {
         let n = node_idxs.len();
         let mut new_matrix = DMatrix::from_element(
@@ -208,6 +211,31 @@ impl ComplexMatrixEditor {
         self.matrix = new_matrix;
         self.text_fields = new_text_fields;
         self.previous_text_fields = self.text_fields.clone();
+    }
+
+    /// To make it more clear to the user what values should be adjusted, the
+    /// matrix is updated using the lines on the canvas. All the edges are
+    /// considered to be undirected. Anywhere a line exists between a pair of
+    /// nodes (i,j) the matrix will show a complex number 1+1i.
+    pub(crate) fn update_from_canvas_edges(&mut self, edges: &Vec<(usize, usize)>) {
+        let matrix = &mut self.matrix;
+
+        let edges: HashSet<(usize, usize)> = HashSet::from_iter(edges.iter().cloned());
+        for i in 0..matrix.nrows() {
+            for j in 0..matrix.ncols() {
+                let matrix_edge_exists = matrix[(i, j)] != Complex::new(0.0, 0.0)
+                    || matrix[(j, i)] != Complex::new(0.0, 0.0);
+                let canvas_edge_exists = edges.contains(&(i, j)) || edges.contains(&(j, i));
+
+                if matrix_edge_exists && !canvas_edge_exists {
+                    matrix[(i, j)] = Complex::new(0.0, 0.0);
+                    matrix[(j, i)] = Complex::new(0.0, 0.0);
+                } else if !matrix_edge_exists && canvas_edge_exists {
+                    matrix[(i, j)] = Complex::new(1.0, 1.0);
+                    matrix[(j, i)] = Complex::new(1.0, 1.0);
+                }
+            }
+        }
     }
 }
 

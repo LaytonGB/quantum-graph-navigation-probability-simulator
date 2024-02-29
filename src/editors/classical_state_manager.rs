@@ -68,8 +68,13 @@ impl ClassicalStateManager {
         )
     }
 
-    pub(crate) fn reset_state(&mut self) {
+    pub(crate) fn reset_state(&mut self, matrix: &DMatrix<f64>) {
         self.step = 0;
+        if let Ok(new_transition_matrix) = ClassicalTransitionMatrix::try_from(matrix) {
+            self.transition_matrix = new_transition_matrix;
+        } else {
+            panic!("Failed to reset state, could not set transition matrix from matrix editor");
+        }
         self.state = self
             .transition_matrix
             .get_initial_state(&self.start_node_idx);

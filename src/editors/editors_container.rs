@@ -58,6 +58,7 @@ impl<'de> serde::Deserialize<'de> for EditorsContainer {
     }
 }
 
+// TODO reduce the number of calls made during show editors
 impl EditorsContainer {
     pub fn show_classical_editors(&mut self, ui: &mut egui::Ui, size: usize) {
         if !self.matrix_editor.is_classical() {
@@ -72,8 +73,11 @@ impl EditorsContainer {
 
             if let StateManager::Classical(csm) = &mut self.state_manager {
                 csm.set_transition_matrix_from(&cme.matrix);
-            } else if let Ok(csm) = ClassicalStateManager::try_from(&cme.matrix) {
-                self.state_manager = StateManager::Classical(csm);
+            } else {
+                match ClassicalStateManager::try_from(&cme.matrix) {
+                    Ok(csm) => self.state_manager = StateManager::Classical(csm),
+                    Err(e) => eprintln!("Error converting matrix to state manager: {}", e),
+                }
             }
         }
 
@@ -167,9 +171,23 @@ impl EditorsContainer {
 
     pub(crate) fn reset_state(&mut self) {
         match &mut self.state_manager {
-            StateManager::Classical(csm) => csm.reset_state(),
+            StateManager::Classical(csm) => {
+                if let MatrixEditor::Classical(cme) = &self.matrix_editor {
+                    csm.reset_state(&cme.matrix);
+                } else {
+                    panic!("State manager is classical but matrix editor is not");
+                }
+            }
             StateManager::Complex(csm) => csm.reset_state(),
             StateManager::None => (),
+        }
+    }
+
+    pub(crate) fn update_editor_from_edges(&mut self, edges: &Vec<(usize, usize)>) {
+        match &mut self.matrix_editor {
+            MatrixEditor::Classical(me) => me.update_from_canvas_edges(edges),
+            MatrixEditor::Complex(me) => me.update_from_canvas_edges(edges),
+            _ => (),
         }
     }
 

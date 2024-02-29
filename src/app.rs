@@ -73,7 +73,7 @@ impl eframe::App for EframeApp {
         self.editors
             .sync_editors(&self.options, self.canvas.nodes.len());
         self.update_canvas_from_editors();
-        self.update_editors_from_canvas();
+        self.update_editors_from_canvas(&self.canvas.lines_as_idx_tuples());
 
         self.show_top_panel(ctx);
         self.show_left_panel(ctx);
@@ -301,95 +301,15 @@ impl EframeApp {
         }
     }
 
-    fn update_editors_from_canvas(&mut self) {
-        match self.options.mode_change_data {
-            Some((_, Mode::Classical)) => {
-                if !self.canvas.node_deletion_history.is_empty() {
-                    self.editors
-                        .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
-                }
-
-                if let MatrixEditor::Classical(matrix_editor) = self.editors.get_matrix_editor_mut()
-                {
-                    let matrix = &mut matrix_editor.matrix;
-                    let text_fields = &mut matrix_editor.text_fields;
-                    let canvas = &self.canvas;
-                    Self::update_classical_matrix_from_edges(matrix, text_fields, canvas);
-                    self.options.clear_mode_change_data();
-                }
-            }
-            Some((_, Mode::Quantum)) => {
-                if !self.canvas.node_deletion_history.is_empty() {
-                    self.editors
-                        .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
-                }
-
-                if let MatrixEditor::Complex(matrix_editor) = self.editors.get_matrix_editor_mut() {
-                    let matrix = &mut matrix_editor.matrix;
-                    let text_fields = &mut matrix_editor.text_fields;
-                    let canvas = &self.canvas;
-                    Self::update_complex_matrix_from_edges(matrix, text_fields, canvas);
-                    self.options.clear_mode_change_data();
-                }
-            }
-            _ => {}
+    fn update_editors_from_canvas(&mut self, edges: &Vec<(usize, usize)>) {
+        if !self.canvas.node_deletion_history.is_empty() {
+            self.editors
+                .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
         }
-    }
 
-    fn update_classical_matrix_from_edges(
-        matrix: &mut DMatrix<f64>,
-        text_fields: &mut Vec<String>,
-        canvas: &Canvas,
-    ) {
-        for (i, j) in (0..matrix.nrows())
-            .flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
-            .collect::<Vec<_>>()
-        {
-            if canvas.is_line_between_nodes(i, j) {
-                if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
-                    matrix[(i, j)] = 1.0;
-                    matrix[(j, i)] = 1.0;
-                    text_fields[i * matrix.nrows() + j] = format!("{}", 1.0);
-                    text_fields[j * matrix.nrows() + i] = format!("{}", 1.0);
-                }
-            } else {
-                matrix[(i, j)] = 0.0;
-                matrix[(j, i)] = 0.0;
-                text_fields[i * matrix.nrows() + j] = format!("{}", 0.0);
-                text_fields[j * matrix.nrows() + i] = format!("{}", 0.0);
-            }
-        }
-    }
+        self.editors.update_editor_from_edges(edges);
 
-    fn update_complex_matrix_from_edges(
-        matrix: &mut DMatrix<Complex<f64>>,
-        text_fields: &mut Vec<(String, String)>,
-        canvas: &Canvas,
-    ) {
-        for (i, j) in (0..matrix.nrows())
-            .flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
-            .collect::<Vec<_>>()
-        {
-            if canvas.is_line_between_nodes(i, j) {
-                if matrix[(i, j)] == Complex::new(0.0, 0.0)
-                    && matrix[(j, i)] == Complex::new(0.0, 0.0)
-                {
-                    matrix[(i, j)] = Complex::new(1.0, 0.0);
-                    matrix[(j, i)] = Complex::new(1.0, 0.0);
-                    text_fields[i * matrix.nrows() + j].0 = format!("{}", 1.0);
-                    text_fields[i * matrix.nrows() + j].1 = format!("{}", 1.0);
-                    text_fields[j * matrix.nrows() + i].0 = format!("{}", 1.0);
-                    text_fields[j * matrix.nrows() + i].1 = format!("{}", 1.0);
-                }
-            } else {
-                matrix[(i, j)] = Complex::new(0.0, 0.0);
-                matrix[(j, i)] = Complex::new(0.0, 0.0);
-                text_fields[i * matrix.nrows() + j].0 = format!("{}", 0.0);
-                text_fields[i * matrix.nrows() + j].1 = format!("{}", 0.0);
-                text_fields[j * matrix.nrows() + i].0 = format!("{}", 0.0);
-                text_fields[j * matrix.nrows() + i].1 = format!("{}", 0.0);
-            }
-        }
+        self.options.clear_mode_change_data();
     }
 }
 

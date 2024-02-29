@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use nalgebra::{DMatrix, DVector};
 
 use super::TransitionMatrixCorrectionType;
@@ -15,16 +15,17 @@ impl std::fmt::Display for ClassicalTransitionMatrix {
 }
 
 impl TryFrom<&DMatrix<f64>> for ClassicalTransitionMatrix {
-    type Error = &'static str;
+    type Error = anyhow::Error;
 
     fn try_from(stochastic_matrix: &DMatrix<f64>) -> Result<Self, Self::Error> {
         if !stochastic_matrix.is_square() {
-            return Err("Matrix is not square");
+            return Err(anyhow!("Matrix is not square"));
         }
 
         let n = stochastic_matrix.nrows();
         let m = n.pow(2);
         let mut matrix = DMatrix::from_element(m, m, 0.0);
+
         for col_offset in 0..n {
             for j in 0..n {
                 for i in 0..n {
@@ -34,9 +35,15 @@ impl TryFrom<&DMatrix<f64>> for ClassicalTransitionMatrix {
                 }
             }
         }
+
         let mut res = Self { matrix };
         res.normalize_stochastic();
-        Ok(res)
+
+        if res.matrix.iter().any(|x| x.is_nan()) {
+            Err(anyhow!("Matrix is not stochastic"))
+        } else {
+            Ok(res)
+        }
     }
 }
 
@@ -67,7 +74,7 @@ impl ClassicalTransitionMatrix {
         let mut res = TransitionMatrixCorrectionType::None;
         for j in 0..n {
             let sum = self.matrix.column(j).iter().sum::<f64>();
-            if sum != 1.0 {
+            if sum != 0.0 && sum != 1.0 {
                 match res {
                     TransitionMatrixCorrectionType::None => {
                         res = TransitionMatrixCorrectionType::Scalar(1.0 / sum)
@@ -100,7 +107,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_from_stochastic_matrix() {
+    fn test_from_stochastic_matrix_3nodes() {
         let input_matrix = DMatrix::from_fn(3, 3, |i, j| match (i, j) {
             (0, 0) => 0.3,
             (0, 2) => 0.7,
@@ -130,6 +137,81 @@ mod tests {
             (7, 2) => 0.3,
             (7, 5) => 0.3,
             (7, 8) => 0.3,
+            _ => 0.0,
+        });
+        assert_eq!(output_matrix.matrix, target_matrix);
+    }
+
+    #[test]
+    fn test_from_stochastic_matrix_6nodes() {
+        let input_matrix = DMatrix::from_fn(6, 6, |i, j| match (i, j) {
+            (1, 0) => 0.5,
+            (2, 0) => 0.5,
+            (3, 1) => 0.5,
+            (3, 3) => 1.0,
+            (4, 1) => 0.5,
+            (4, 2) => 0.5,
+            (4, 4) => 1.0,
+            (5, 2) => 0.5,
+            (5, 5) => 1.0,
+            _ => 0.0,
+        });
+        let output_matrix = ClassicalTransitionMatrix::try_from(&input_matrix).unwrap();
+        let target_matrix = DMatrix::from_fn(36, 36, |i, j| match (i, j) {
+            (1, 0) => 0.5,
+            (1, 12) => 0.5,
+            (1, 18) => 0.5,
+            (1, 24) => 0.5,
+            (1, 30) => 0.5,
+            (1, 6) => 0.5,
+            (10, 1) => 0.5,
+            (10, 13) => 0.5,
+            (10, 19) => 0.5,
+            (10, 25) => 0.5,
+            (10, 31) => 0.5,
+            (10, 7) => 0.5,
+            (16, 14) => 0.5,
+            (16, 2) => 0.5,
+            (16, 20) => 0.5,
+            (16, 26) => 0.5,
+            (16, 32) => 0.5,
+            (16, 8) => 0.5,
+            (17, 14) => 0.5,
+            (17, 2) => 0.5,
+            (17, 20) => 0.5,
+            (17, 26) => 0.5,
+            (17, 32) => 0.5,
+            (17, 8) => 0.5,
+            (2, 0) => 0.5,
+            (2, 12) => 0.5,
+            (2, 18) => 0.5,
+            (2, 24) => 0.5,
+            (2, 30) => 0.5,
+            (2, 6) => 0.5,
+            (21, 15) => 1.0,
+            (21, 21) => 1.0,
+            (21, 27) => 1.0,
+            (21, 3) => 1.0,
+            (21, 33) => 1.0,
+            (21, 9) => 1.0,
+            (28, 10) => 1.0,
+            (28, 16) => 1.0,
+            (28, 22) => 1.0,
+            (28, 28) => 1.0,
+            (28, 34) => 1.0,
+            (28, 4) => 1.0,
+            (35, 11) => 1.0,
+            (35, 17) => 1.0,
+            (35, 23) => 1.0,
+            (35, 29) => 1.0,
+            (35, 35) => 1.0,
+            (35, 5) => 1.0,
+            (9, 1) => 0.5,
+            (9, 13) => 0.5,
+            (9, 19) => 0.5,
+            (9, 25) => 0.5,
+            (9, 31) => 0.5,
+            (9, 7) => 0.5,
             _ => 0.0,
         });
         assert_eq!(output_matrix.matrix, target_matrix);
