@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Result};
 use nalgebra::{DMatrix, DVector};
 
@@ -6,6 +8,9 @@ use super::TransitionMatrixCorrectionType;
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClassicalTransitionMatrix {
     pub matrix: DMatrix<f64>,
+
+    row_idx_map: HashMap<(usize, usize), usize>,
+    col_idx_map: HashMap<(usize, usize), usize>,
 }
 
 impl std::fmt::Display for ClassicalTransitionMatrix {
@@ -36,7 +41,36 @@ impl TryFrom<&DMatrix<f64>> for ClassicalTransitionMatrix {
             }
         }
 
-        let mut res = Self { matrix };
+        let col_idx_map = (0..n)
+            .flat_map(|x| (0..n).map(move |y| (x, y)))
+            .enumerate()
+            .map(|(idx, (i, j))| ((i, j), idx))
+            .collect::<HashMap<(usize, usize), usize>>();
+
+        let row_idx_map = (0..n)
+            .flat_map(|x| (0..n).map(move |y| (x, y)))
+            .enumerate()
+            .filter(|(i, _)| matrix.row(*i).iter().any(|y| *y != 0.0))
+            .enumerate()
+            .map(|(idx, (_, (i, j)))| ((i, j), idx))
+            .collect::<HashMap<(usize, usize), usize>>();
+
+        let n_nonzero_rows = row_idx_map.len();
+        let mut res_matrix = DMatrix::from_element(n_nonzero_rows, m, 0.0);
+        for (i, row) in (0..m)
+            .filter(|x| matrix.row(*x).iter().any(|y| *y != 0.0))
+            .enumerate()
+        {
+            for col in 0..m {
+                res_matrix[(i, col)] = matrix[(row, col)];
+            }
+        }
+
+        let mut res = Self {
+            matrix: res_matrix,
+            row_idx_map,
+            col_idx_map,
+        };
         res.normalize_stochastic();
 
         if res.matrix.iter().any(|x| x.is_nan()) {
@@ -62,7 +96,7 @@ impl ClassicalTransitionMatrix {
     }
 
     pub fn apply(&self, state: DVector<f64>) -> Result<DVector<f64>> {
-        if state.len() != self.matrix.ncols() {
+        if self.matrix.ncols() != state.len() {
             return Err(anyhow::anyhow!("Matrix dimensions do not match"));
         }
         Ok(&self.matrix * state)
@@ -118,7 +152,7 @@ mod tests {
             _ => 0.0,
         });
         let output_matrix = ClassicalTransitionMatrix::try_from(&input_matrix).unwrap();
-        let target_matrix = DMatrix::from_fn(9, 9, |i, j| match (i, j) {
+        let target_matrix = DMatrix::from_fn(6, 9, |i, j| match (i, j) {
             (0, 0) => 0.3,
             (0, 3) => 0.3,
             (0, 6) => 0.3,
@@ -128,18 +162,47 @@ mod tests {
             (2, 0) => 0.2,
             (2, 3) => 0.2,
             (2, 6) => 0.2,
-            (5, 1) => 1.0,
-            (5, 4) => 1.0,
-            (5, 7) => 1.0,
-            (6, 2) => 0.7,
-            (6, 5) => 0.7,
-            (6, 8) => 0.7,
-            (7, 2) => 0.3,
-            (7, 5) => 0.3,
-            (7, 8) => 0.3,
+            (3, 1) => 1.0,
+            (3, 4) => 1.0,
+            (3, 7) => 1.0,
+            (4, 2) => 0.7,
+            (4, 5) => 0.7,
+            (4, 8) => 0.7,
+            (5, 2) => 0.3,
+            (5, 5) => 0.3,
+            (5, 8) => 0.3,
             _ => 0.0,
         });
+        println!("OUTPUT MATRIX: {}", output_matrix.matrix);
+        println!("TARGET MATRIX: {}", target_matrix);
         assert_eq!(output_matrix.matrix, target_matrix);
+
+        let target_col_index_map = HashMap::from([
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((1, 0), 3),
+            ((1, 1), 4),
+            ((1, 2), 5),
+            ((2, 0), 6),
+            ((2, 1), 7),
+            ((2, 2), 8),
+        ]);
+        println!("OUTPUT COL MAP: {:?}", output_matrix.col_idx_map);
+        println!("TARGET COL MAP: {:?}", target_col_index_map);
+        assert_eq!(output_matrix.col_idx_map, target_col_index_map);
+
+        let target_row_index_map = HashMap::from([
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((1, 2), 3),
+            ((2, 0), 4),
+            ((2, 1), 5),
+        ]);
+        println!("OUTPUT ROW MAP: {:?}", output_matrix.row_idx_map);
+        println!("TARGET ROW MAP: {:?}", target_row_index_map);
+        assert_eq!(output_matrix.row_idx_map, target_row_index_map);
     }
 
     #[test]
@@ -157,63 +220,122 @@ mod tests {
             _ => 0.0,
         });
         let output_matrix = ClassicalTransitionMatrix::try_from(&input_matrix).unwrap();
-        let target_matrix = DMatrix::from_fn(36, 36, |i, j| match (i, j) {
+        let target_matrix = DMatrix::from_fn(9, 36, |i, j| match (i, j) {
+            (0, 0) => 0.5,
+            (0, 12) => 0.5,
+            (0, 18) => 0.5,
+            (0, 24) => 0.5,
+            (0, 30) => 0.5,
+            (0, 6) => 0.5,
             (1, 0) => 0.5,
             (1, 12) => 0.5,
             (1, 18) => 0.5,
             (1, 24) => 0.5,
             (1, 30) => 0.5,
             (1, 6) => 0.5,
-            (2, 0) => 0.5,
-            (2, 12) => 0.5,
-            (2, 18) => 0.5,
-            (2, 24) => 0.5,
-            (2, 30) => 0.5,
-            (2, 6) => 0.5,
-            (9, 1) => 0.5,
-            (9, 13) => 0.5,
-            (9, 19) => 0.5,
-            (9, 25) => 0.5,
-            (9, 31) => 0.5,
-            (9, 7) => 0.5,
-            (10, 1) => 0.5,
-            (10, 13) => 0.5,
-            (10, 19) => 0.5,
-            (10, 25) => 0.5,
-            (10, 31) => 0.5,
-            (10, 7) => 0.5,
-            (16, 14) => 0.5,
-            (16, 2) => 0.5,
-            (16, 20) => 0.5,
-            (16, 26) => 0.5,
-            (16, 32) => 0.5,
-            (16, 8) => 0.5,
-            (17, 14) => 0.5,
-            (17, 2) => 0.5,
-            (17, 20) => 0.5,
-            (17, 26) => 0.5,
-            (17, 32) => 0.5,
-            (17, 8) => 0.5,
-            (21, 15) => 1.0,
-            (21, 21) => 1.0,
-            (21, 27) => 1.0,
-            (21, 3) => 1.0,
-            (21, 33) => 1.0,
-            (21, 9) => 1.0,
-            (28, 10) => 1.0,
-            (28, 16) => 1.0,
-            (28, 22) => 1.0,
-            (28, 28) => 1.0,
-            (28, 34) => 1.0,
-            (28, 4) => 1.0,
-            (35, 11) => 1.0,
-            (35, 17) => 1.0,
-            (35, 23) => 1.0,
-            (35, 29) => 1.0,
-            (35, 35) => 1.0,
-            (35, 5) => 1.0,
+            (2, 1) => 0.5,
+            (2, 13) => 0.5,
+            (2, 19) => 0.5,
+            (2, 25) => 0.5,
+            (2, 31) => 0.5,
+            (2, 7) => 0.5,
+            (3, 1) => 0.5,
+            (3, 13) => 0.5,
+            (3, 19) => 0.5,
+            (3, 25) => 0.5,
+            (3, 31) => 0.5,
+            (3, 7) => 0.5,
+            (4, 14) => 0.5,
+            (4, 2) => 0.5,
+            (4, 20) => 0.5,
+            (4, 26) => 0.5,
+            (4, 32) => 0.5,
+            (4, 8) => 0.5,
+            (5, 14) => 0.5,
+            (5, 2) => 0.5,
+            (5, 20) => 0.5,
+            (5, 26) => 0.5,
+            (5, 32) => 0.5,
+            (5, 8) => 0.5,
+            (6, 15) => 1.0,
+            (6, 21) => 1.0,
+            (6, 27) => 1.0,
+            (6, 3) => 1.0,
+            (6, 33) => 1.0,
+            (6, 9) => 1.0,
+            (7, 10) => 1.0,
+            (7, 16) => 1.0,
+            (7, 22) => 1.0,
+            (7, 28) => 1.0,
+            (7, 34) => 1.0,
+            (7, 4) => 1.0,
+            (8, 11) => 1.0,
+            (8, 17) => 1.0,
+            (8, 23) => 1.0,
+            (8, 29) => 1.0,
+            (8, 35) => 1.0,
+            (8, 5) => 1.0,
             _ => 0.0,
         });
+        println!("OUTPUT MATRIX: {}", output_matrix.matrix);
+        println!("TARGET MATRIX: {}", target_matrix);
         assert_eq!(output_matrix.matrix, target_matrix);
+
+        let target_col_index_map = HashMap::from([
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((1, 0), 6),
+            ((1, 1), 7),
+            ((1, 2), 8),
+            ((1, 3), 9),
+            ((1, 4), 10),
+            ((1, 5), 11),
+            ((2, 0), 12),
+            ((2, 1), 13),
+            ((2, 2), 14),
+            ((2, 3), 15),
+            ((2, 4), 16),
+            ((2, 5), 17),
+            ((3, 0), 18),
+            ((3, 1), 19),
+            ((3, 2), 20),
+            ((3, 3), 21),
+            ((3, 4), 22),
+            ((3, 5), 23),
+            ((4, 0), 24),
+            ((4, 1), 25),
+            ((4, 2), 26),
+            ((4, 3), 27),
+            ((4, 4), 28),
+            ((4, 5), 29),
+            ((5, 0), 30),
+            ((5, 1), 31),
+            ((5, 2), 32),
+            ((5, 3), 33),
+            ((5, 4), 34),
+            ((5, 5), 35),
+        ]);
+        println!("OUTPUT COL MAP: {:?}", output_matrix.col_idx_map);
+        println!("TARGET COL MAP: {:?}", target_col_index_map);
+        assert_eq!(output_matrix.col_idx_map, target_col_index_map);
+
+        let target_row_index_map = HashMap::from([
+            ((4, 4), 7),
+            ((5, 5), 8),
+            ((0, 2), 1),
+            ((2, 5), 5),
+            ((3, 3), 6),
+            ((0, 1), 0),
+            ((2, 4), 4),
+            ((1, 3), 2),
+            ((1, 4), 3),
+        ]);
+        println!("OUTPUT ROW MAP: {:?}", output_matrix.row_idx_map);
+        println!("TARGET ROW MAP: {:?}", target_row_index_map);
+        assert_eq!(output_matrix.row_idx_map, target_row_index_map);
     }
 }
