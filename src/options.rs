@@ -42,6 +42,7 @@ impl Options {
                 .text_edit_singleline(&mut self.generic.start_node_idx_text_field)
                 .changed()
             {
+                // FIXME apply more checks here, node must be within range
                 if let Ok(idx) = self.generic.start_node_idx_text_field.parse::<usize>() {
                     self.generic.start_node_idx = idx;
                 } else {
