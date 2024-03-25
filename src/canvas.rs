@@ -140,7 +140,7 @@ impl Canvas {
                 .lines
                 .clone()
                 .into_iter()
-                .filter(|l| !l.is_attatched(&target_node))
+                .filter(|l| !l.is_attached(&target_node))
                 .collect();
             let res = Some(self.nodes.remove(index));
             if res.is_some() {
@@ -388,9 +388,9 @@ impl Canvas {
         &mut self,
         plot_ui: &PlotUi,
         pointer_coords: PlotPoint,
-        global_pointer_coords: Result<Pos2, ()>,
+        global_pointer_coords: Option<Pos2>,
     ) {
-        if let (Ok(global_pointer_coords), Some(closest)) = (
+        if let (Some(global_pointer_coords), Some(closest)) = (
             global_pointer_coords,
             self.find_closest_to_pointer(pointer_coords),
         ) {
@@ -417,7 +417,7 @@ impl Canvas {
         plot_ui: &PlotUi,
         state: &mut InputState,
         pointer_coords: PlotPoint,
-        global_pointer_coords: Result<Pos2, ()>,
+        global_pointer_coords: Option<Pos2>,
     ) {
         for key in state.keys_down.clone() {
             match key {
@@ -437,11 +437,11 @@ impl Canvas {
         selected_tool: Tool,
         plot_ui: &PlotUi,
         pointer_coords: PlotPoint,
-        global_pointer_coords: Result<Pos2, ()>,
+        global_pointer_coords: Option<Pos2>,
         snap: Snap,
     ) {
         match (selected_tool, global_pointer_coords) {
-            (Tool::Move, Ok(global_pointer_coords)) => {
+            (Tool::Move, Some(global_pointer_coords)) => {
                 self.move_node(plot_ui, pointer_coords, global_pointer_coords, snap)
             }
             (Tool::Node, _) => {
@@ -450,10 +450,10 @@ impl Canvas {
                     eprintln!("[{}:{}] Error: Node not created", file!(), line!());
                 }
             }
-            (Tool::Line, Ok(global_pointer_coords)) => {
+            (Tool::Line, Some(global_pointer_coords)) => {
                 self.add_line(plot_ui, pointer_coords, global_pointer_coords)
             }
-            (Tool::Label, Ok(global_pointer_coords)) => {
+            (Tool::Label, Some(global_pointer_coords)) => {
                 self.add_label(plot_ui, pointer_coords, global_pointer_coords)
             }
             _ => unreachable!(), // TODO add appropriate error message
@@ -466,60 +466,50 @@ impl Canvas {
         }
     }
 
-    fn plot_show(&mut self, plot_ui: &mut PlotUi, selected_tool: Tool, options: &Options) {
-        let snap = if options.mode == Mode::Edit {
-            options.specific.edit.snap
-        } else {
-            Snap::None
-        };
-
+    /// Draws nodes, edges, and any previews for lines being placed or nodes being moved, and
+    /// lastly handles input.
+    fn plot_show(
+        &mut self,
+        plot_ui: &mut PlotUi,
+        selected_tool: Tool,
+        options: &Options,
+        pointer_coords: Option<PlotPoint>,
+        global_pointer_coords: Option<Pos2>,
+    ) {
         self.draw_lines(plot_ui, options);
         self.draw_nodes(plot_ui, options);
         self.draw_state_data(plot_ui, options);
 
-        self.reset_values_by_tool(selected_tool);
+        self.draw_previews(plot_ui, pointer_coords);
+    }
 
-        let pointer_coords = plot_ui.pointer_coordinate();
-        let global_pointer_coords =
-            if let Some(global_pointer_coords) = plot_ui.ctx().input(|i| i.pointer.latest_pos()) {
-                Ok(global_pointer_coords - plot_ui.response().drag_delta())
-            } else {
-                Err(())
-            };
+    fn draw_previews(&mut self, plot_ui: &mut PlotUi, pointer_coords: Option<PlotPoint>) {
+        let Some(pointer_coords) = pointer_coords else {
+            return;
+        };
 
-        if let Some(pointer_coords) = pointer_coords {
-            if let Some(start) = &self.line_start {
-                let start = start.borrow();
-                plot_ui.line(
-                    Line::new(vec![
-                        [start.x, start.y],
-                        [pointer_coords.x, pointer_coords.y],
-                    ])
-                    .color(Color32::LIGHT_BLUE),
-                );
-            }
-
-            if let Some((start, _)) = self.node_being_moved_and_origin.clone() {
-                let mut start = start.as_ref().borrow_mut();
-                start.x = pointer_coords.x;
-                start.y = pointer_coords.y;
-            }
-
-            plot_ui.ctx().input_mut(|state| {
-                if plot_ui.response().clicked() {
-                    self.click_handler(
-                        selected_tool,
-                        plot_ui,
-                        pointer_coords,
-                        global_pointer_coords,
-                        snap,
-                    );
-                }
-
-                self.keypress_handler(plot_ui, state, pointer_coords, global_pointer_coords);
-            });
+        // show preview of line being drawn if one exists
+        if let Some(start) = &self.line_start {
+            let start = start.borrow();
+            plot_ui.line(
+                Line::new(vec![
+                    [start.x, start.y],
+                    [pointer_coords.x, pointer_coords.y],
+                ])
+                .color(Color32::LIGHT_BLUE),
+            );
         }
 
+        // show preview of node being moved if one exists
+        if let Some((start, _)) = self.node_being_moved_and_origin.clone() {
+            let mut start = start.as_ref().borrow_mut();
+            start.x = pointer_coords.x;
+            start.y = pointer_coords.y;
+        }
+    }
+
+    /// Adds right click menu.
+    fn draw_context_menu(&mut self, plot_ui: &mut PlotUi) {
         plot_ui
             .response()
             .clone()
@@ -538,9 +528,73 @@ impl Canvas {
             .data_aspect(1.0)
             .legend(Legend::default())
             .show(ui, |plot_ui| {
-                self.plot_show(plot_ui, selected_tool, options);
-                self.draw_state_data(plot_ui, options);
+                self.reset_values_by_tool(selected_tool);
+
+                let (pointer_coords, global_pointer_coords) =
+                    self.get_pointer_coords(plot_ui, options);
+
+                self.plot_show(
+                    plot_ui,
+                    selected_tool,
+                    options,
+                    pointer_coords,
+                    global_pointer_coords,
+                );
+                self.handle_interactions(
+                    plot_ui,
+                    selected_tool,
+                    options,
+                    pointer_coords,
+                    global_pointer_coords,
+                );
+
+                self.draw_context_menu(plot_ui);
             });
+    }
+
+    fn handle_interactions(
+        &mut self,
+        plot_ui: &mut PlotUi,
+        selected_tool: Tool,
+        options: &Options,
+        pointer_coords: Option<PlotPoint>,
+        global_pointer_coords: Option<Pos2>,
+    ) {
+        let Some(pointer_coords) = pointer_coords else {
+            return;
+        };
+
+        let snap = match options.mode {
+            Mode::Edit => options.specific.edit.snap,
+            _ => Snap::None,
+        };
+
+        plot_ui.ctx().input_mut(|state| {
+            if plot_ui.response().clicked() {
+                self.click_handler(
+                    selected_tool,
+                    plot_ui,
+                    pointer_coords,
+                    global_pointer_coords,
+                    snap,
+                );
+            }
+
+            self.keypress_handler(plot_ui, state, pointer_coords, global_pointer_coords);
+        });
+    }
+
+    fn get_pointer_coords(
+        &self,
+        plot_ui: &PlotUi,
+        options: &Options,
+    ) -> (Option<PlotPoint>, Option<Pos2>) {
+        let pointer_coords = plot_ui.pointer_coordinate();
+        let global_pointer_coords = plot_ui
+            .ctx()
+            .input(|i| i.pointer.latest_pos())
+            .and_then(|gpc| Some(gpc - plot_ui.response().drag_delta()));
+        (pointer_coords, global_pointer_coords)
     }
 
     fn reset_values_by_tool(&mut self, selected_tool: Tool) {
@@ -596,10 +650,12 @@ impl Canvas {
             .collect()
     }
 
-    pub(crate) fn add_state_data(&mut self, state_data: Option<DVector<f64>>) {
+    pub(crate) fn set_state_data(&mut self, state_data: Option<DVector<f64>>) {
         self.state_data = state_data;
     }
 
+    /// Uses node position data combined with state probabilities to draw state probabilities
+    /// onto the canvas next to each relevant node.
     fn draw_state_data(&self, plot_ui: &mut PlotUi, options: &Options) {
         if options.mode != Mode::Edit {
             if let Some(state_data) = &self.state_data {
