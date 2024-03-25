@@ -1,4 +1,13 @@
 {
   "rust-analyzer.rustfmt.extraArgs": ["+nightly"],
-  "rust-analyzer.showUnlinkedFileNotification": false
+  "rust-analyzer.showUnlinkedFileNotification": false,
+  "cSpell.words": [
+    "consts",
+    "Eframe",
+    "egui",
+    "evalexpr",
+    "nalgebra",
+    "ncols",
+    "nrows"
+  ]
 }
