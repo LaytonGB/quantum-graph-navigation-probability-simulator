@@ -183,7 +183,7 @@ impl EditorsContainer {
     pub(crate) fn update_editor_from_edges(&mut self, edges: &Vec<(usize, usize)>) {
         match &mut self.matrix_editor {
             MatrixEditor::Classical(me) => me.update_from_canvas_edges(edges),
-            MatrixEditor::Complex(me) => me.update_from_canvas_edges(edges),
+            MatrixEditor::Complex(_) => (),
             _ => (),
         }
     }

@@ -261,14 +261,7 @@ impl EframeApp {
                     matrix_editor.on_canvas_updated();
                 }
             }
-            (Mode::Quantum, None, MatrixEditor::Complex(matrix_editor)) => {
-                if matrix_editor.is_canvas_update_ready() {
-                    let matrix = &matrix_editor.combined_matrix;
-                    let canvas = &mut self.canvas;
-                    Self::update_edges_from_complex_matrix(matrix, canvas);
-                    matrix_editor.on_canvas_updated();
-                }
-            }
+            (Mode::Quantum, None, MatrixEditor::Complex(_)) => {}
             _ => {}
         }
     }

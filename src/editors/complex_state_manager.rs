@@ -89,8 +89,8 @@ impl ComplexStateManager {
         self.step
     }
 
-    pub(crate) fn is_transition_matrix_sized_correctly(&self, nnodes: usize) -> bool {
-        nnodes.pow(2) == self.transition_matrix.matrix.ncols()
+    pub(crate) fn is_transition_matrix_sized_correctly(&self, node_count: usize) -> bool {
+        node_count.pow(2) == self.transition_matrix.matrix.ncols()
     }
 
     pub(crate) fn set_start_node_idx(&mut self, start_node_idx: usize) {
