@@ -17,6 +17,13 @@ pub struct ComplexMatrixEditor {
     adjacency_list: HashMap<usize, Vec<usize>>,
     labels: Vec<(usize, usize)>,
 
+    /// 3 vectors deep refer to: start node, end node, line of connections
+    /// edges: a->b       a->c
+    /// a->b   [0][1][0]  [0][2][0]
+    /// a->c   [0][1][1]  [0][2][1]
+    ///
+    /// each node has an N by N matrix of text fields
+    /// where N is the number of connections the node has
     previous_text_fields: Vec<Vec<Vec<(String, String)>>>,
     pub text_fields: Vec<Vec<Vec<(String, String)>>>,
 
@@ -37,12 +44,6 @@ impl Editor for ComplexMatrixEditor {
 
 impl ComplexMatrixEditor {
     pub fn new(edges: &Vec<(usize, usize)>) -> Self {
-        // let node_edge_counts = edges.iter().fold(HashMap::new(), |mut m, (i, j)| {
-        //     m.entry(*i).and_modify(|e| *e += 1).or_insert(1);
-        //     m.entry(*j).and_modify(|e| *e += 1).or_insert(1);
-        //     m
-        // });
-
         let mut adjacency_list = edges.iter().fold(HashMap::new(), |mut m, (i, j)| {
             m.entry(*i)
                 .and_modify(|e: &mut Vec<usize>| e.push(*j))
@@ -104,7 +105,9 @@ impl ComplexMatrixEditor {
             }
         });
         println!("scatter: {}", self.scatter_matrix);
-        println!("propagation: {}", self.propagation_matrix);
+        // println!("propagation: {}", self.propagation_matrix);
+        // println!("combined: {}", self.combined_matrix);
+        // println!("{:?}", self.text_fields);
     }
 
     fn show_text_fields(&mut self, ui: &mut egui::Ui) {
@@ -173,6 +176,54 @@ impl ComplexMatrixEditor {
     }
 
     fn apply_text_fields(&mut self) {
+        // the position of each group of numbers is the index of the FROM node plus
+        // the sum of all previous adjacent nodes
+
+        // sort nodes into order
+        let mut past_adjacencies = 0;
+        let mut from_nodes = self.adjacency_list.keys().copied().collect::<Vec<_>>();
+        from_nodes.sort_unstable();
+
+        for &i in from_nodes.iter() {
+            let connections = self.adjacency_list.get(&i).unwrap();
+            let connections_count = connections.len();
+
+            for j in 0..connections_count {
+                for k in 0..connections_count {
+                    let re = eval_with_context(&self.text_fields[i][j][k].0, &self.math_constants);
+                    let re = match re {
+                        Ok(Value::Int(num)) => num as f64,
+                        Ok(Value::Float(num)) => num,
+                        _ => {
+                            self.text_fields[i][j] = self.previous_text_fields[i][j].clone();
+                            continue;
+                        }
+                    };
+
+                    let im = eval_with_context(&self.text_fields[i][j][k].1, &self.math_constants);
+                    let im = match im {
+                        Ok(Value::Int(num)) => num as f64,
+                        Ok(Value::Float(num)) => num,
+                        _ => {
+                            self.text_fields[i] = self.previous_text_fields[i].clone();
+                            continue;
+                        }
+                    };
+
+                    let node_num = from_nodes[i];
+                    let connection_count = self.adjacency_list.get(&node_num).unwrap().len();
+                    self.set_value(
+                        past_adjacencies + j,
+                        past_adjacencies + k,
+                        Complex::new(re, im),
+                    );
+                }
+            }
+
+            past_adjacencies += connections_count;
+        }
+
+        /*
         for i in 0..self.text_fields.len() {
             for j in 0..self.text_fields[i].len() {
                 for k in 0..self.text_fields[j].len() {
@@ -196,17 +247,28 @@ impl ComplexMatrixEditor {
                         }
                     };
 
-                    self.set_value(i, j, Complex::new(re, im));
+                    let node_num = from_nodes[i];
+                    let connection_count = self.adjacency_list.get(&node_num).unwrap().len();
+                    self.set_value(
+                        i + past_adjacencies + k / connection_count,
+                        j + past_adjacencies + k % connection_count,
+                        Complex::new(re, im),
+                    );
+
+                    past_adjacencies += connection_count;
                 }
             }
         }
+        */
+
         self.previous_text_fields = self.text_fields.clone();
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
     }
 
     fn set_value(&mut self, row: usize, col: usize, value: Complex<f64>) {
-        self.combined_matrix[(row, col)] = value;
+        println!("setting value at ({}, {}) to {:?}", row, col, value);
+        self.scatter_matrix[(row, col)] = value;
     }
 
     fn reset_from_adjacency_list(&mut self) {
