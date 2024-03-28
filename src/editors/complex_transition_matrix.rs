@@ -27,13 +27,13 @@ impl ComplexTransitionMatrix {
     }
 
     pub fn get_initial_state(&self, start_node_idx: &Option<usize>) -> DVector<Complex<f64>> {
-        let nnodes = (self.matrix.ncols() as f64).sqrt() as usize;
+        let node_count = (self.matrix.ncols() as f64).sqrt() as usize;
         let mut res = DVector::from_element(self.matrix.ncols(), Complex::new(0.0, 0.0));
         if res.len() == 0 {
             return res;
         }
         let start_node_idx = start_node_idx
-            .and_then(|x| Some(x * nnodes + x))
+            .and_then(|x| Some(x * node_count + x))
             .unwrap_or(0);
         res[start_node_idx] = Complex::new(1.0, 0.0);
         res
@@ -52,29 +52,29 @@ impl ComplexTransitionMatrix {
             return TransitionMatrixCorrectionType::None;
         }
 
-        let mut correction_vals = DVector::from_element(n, 0.0);
+        let mut correction_values = DVector::from_element(n, 0.0);
         let mut svd = self.matrix.clone().svd(true, true);
         svd.singular_values
             .iter_mut()
             .enumerate()
             .for_each(|(i, x)| {
-                correction_vals[i] = 1.0 - *x;
+                correction_values[i] = 1.0 - *x;
                 *x = 1.0;
             });
 
-        let (min_correction, max_correction) = correction_vals
+        let (min_correction, max_correction) = correction_values
             .iter()
             .fold((f64::MAX, f64::MIN), |(min, max), x| {
                 (min.min(*x), max.max(*x))
             });
         let largest_abs_correction = max_correction.abs().max(min_correction.abs());
-        let correction_vals_difference = max_correction - min_correction;
-        let require_non_scalar_correction = { correction_vals_difference > self.max_error };
+        let correction_difference = max_correction - min_correction;
+        let require_non_scalar_correction = { correction_difference > self.max_error };
 
         if require_non_scalar_correction {
             Self::make_svd_unitary(&mut svd);
             self.matrix = svd.recompose().expect("SVD recomposition failed");
-            TransitionMatrixCorrectionType::NonScalar(correction_vals)
+            TransitionMatrixCorrectionType::NonScalar(correction_values)
         } else if largest_abs_correction > self.max_error {
             Self::make_svd_unitary(&mut svd);
             self.matrix = svd.recompose().expect("SVD recomposition failed");
@@ -143,14 +143,14 @@ mod tests {
         let mut non_scalar_transition_matrix =
             ComplexTransitionMatrix::new(non_scalar_unitary_matrix).unwrap();
         let correction_type = non_scalar_transition_matrix.normalize_unitary();
-        let correction_vals = match correction_type {
+        let correction_values = match correction_type {
             TransitionMatrixCorrectionType::NonScalar(x) => x,
             _ => panic!("Expected non scalar correction"),
         };
 
         // assert equal with reasonable error (succeeds at 1e-10, fails at 1e-11)
         assert_abs_diff_eq!(
-            correction_vals.as_slice(),
+            correction_values.as_slice(),
             &[-0.5_f64, -0.4_f64].as_slice(),
             epsilon = 1e-10
         );
