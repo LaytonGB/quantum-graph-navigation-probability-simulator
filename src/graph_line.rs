@@ -26,7 +26,7 @@ impl GraphLine {
         }
     }
 
-    pub fn is_attatched(&self, other: &GraphNode) -> bool {
+    pub fn is_attached(&self, other: &GraphNode) -> bool {
         self.start.borrow().clone() == *other || self.end.borrow().clone() == *other
     }
 

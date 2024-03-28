@@ -466,8 +466,8 @@ impl Canvas {
         }
     }
 
-    /// Draws nodes, edges, and any previews for lines being placed or nodes being moved, and
-    /// lastly handles input.
+    /// Draws nodes, edges, state data for the related nodes, and any previews for lines being
+    /// placed or nodes being moved, and lastly handles input.
     fn plot_show(
         &mut self,
         plot_ui: &mut PlotUi,
@@ -516,6 +516,10 @@ impl Canvas {
             .context_menu(|ctx_ui| ContextMenu::plot_context_menu(self, ctx_ui));
     }
 
+    /// Draws the canvas, and populates it with the nodes, lines, and any previews for lines being
+    /// placed or nodes being moved.
+    ///
+    /// Also handles canvas input and draws the right-click menu.
     pub fn show(
         &mut self,
         ui: &mut Ui,
@@ -619,7 +623,7 @@ impl Canvas {
         }
     }
 
-    pub fn lines_as_idx_tuples(&self) -> Vec<(usize, usize)> {
+    pub fn get_lines_as_idx_tuples(&self) -> Vec<(usize, usize)> {
         self.lines
             .iter()
             .map(|l| {
@@ -681,7 +685,7 @@ impl Serialize for Canvas {
         let mut state = serializer.serialize_struct("Canvas", 2)?;
         state.serialize_field("nodes", &self.nodes)?;
 
-        let serializable_lines: Vec<(usize, usize)> = self.lines_as_idx_tuples();
+        let serializable_lines: Vec<(usize, usize)> = self.get_lines_as_idx_tuples();
         state.serialize_field("lines", &serializable_lines)?;
 
         state.end()

@@ -60,14 +60,14 @@ impl<'de> serde::Deserialize<'de> for EditorsContainer {
 
 // TODO reduce the number of calls made during show editors
 impl EditorsContainer {
-    pub fn show_classical_editors(&mut self, ui: &mut egui::Ui, size: usize) {
+    pub fn show_classical_editors(&mut self, ui: &mut egui::Ui, node_count: usize) {
         if !self.matrix_editor.is_classical() {
-            self.matrix_editor = MatrixEditor::Classical(ClassicalMatrixEditor::new(size));
+            self.matrix_editor = MatrixEditor::Classical(ClassicalMatrixEditor::new(node_count));
         }
 
         if let MatrixEditor::Classical(cme) = &mut self.matrix_editor {
-            if cme.matrix.nrows() < size {
-                cme.resize_matrix(size);
+            if cme.matrix.nrows() < node_count {
+                cme.resize_matrix(node_count);
             }
             cme.show(ui);
 
@@ -85,20 +85,17 @@ impl EditorsContainer {
         self.show_state_buttons(ui);
     }
 
-    pub fn show_quantum_editors(&mut self, ui: &mut egui::Ui, size: usize) {
+    pub fn show_quantum_editors(&mut self, ui: &mut egui::Ui, edges: &Vec<(usize, usize)>) {
         if !self.matrix_editor.is_complex() {
-            self.matrix_editor = MatrixEditor::Complex(ComplexMatrixEditor::new(size));
+            self.matrix_editor = MatrixEditor::Complex(ComplexMatrixEditor::new(edges));
         }
 
         if let MatrixEditor::Complex(cme) = &mut self.matrix_editor {
-            if cme.matrix.nrows() < size {
-                cme.resize_matrix(size);
-            }
             cme.show(ui);
 
             if let StateManager::Complex(csm) = &mut self.state_manager {
-                csm.set_transition_matrix_from(&cme.matrix);
-            } else if let Ok(csm) = ComplexStateManager::try_from(&cme.matrix) {
+                csm.set_transition_matrix_from(&cme.combined_matrix);
+            } else if let Ok(csm) = ComplexStateManager::try_from(&cme.combined_matrix) {
                 self.state_manager = StateManager::Complex(csm);
             }
         }
@@ -140,10 +137,10 @@ impl EditorsContainer {
         &mut self.matrix_editor
     }
 
-    pub fn remove_nodes(&mut self, node_idxs: Vec<usize>) {
+    pub fn remove_nodes(&mut self, node_indexes: Vec<usize>) {
         match &mut self.matrix_editor {
-            MatrixEditor::Classical(matrix_editor) => matrix_editor.remove_node(node_idxs),
-            MatrixEditor::Complex(matrix_editor) => matrix_editor.remove_node(node_idxs),
+            MatrixEditor::Classical(matrix_editor) => matrix_editor.remove_node(node_indexes),
+            MatrixEditor::Complex(_) => self.matrix_editor = MatrixEditor::None,
             _ => (),
         }
     }
@@ -191,20 +188,22 @@ impl EditorsContainer {
         }
     }
 
-    pub(crate) fn sync_editors(&mut self, options: &Options, nnodes: usize) {
+    pub(crate) fn sync_editors(&mut self, options: &Options, node_count: usize) {
         match (&mut self.matrix_editor, &mut self.state_manager) {
             (MatrixEditor::Classical(me), StateManager::Classical(csm)) => {
                 csm.set_start_node_idx(options.generic.start_node_idx);
-                if me.is_canvas_update_ready() || !csm.is_transition_matrix_sized_correctly(nnodes)
+                if me.is_canvas_update_ready()
+                    || !csm.is_transition_matrix_sized_correctly(node_count)
                 {
                     csm.set_transition_matrix_from(&me.matrix);
                 }
             }
             (MatrixEditor::Complex(me), StateManager::Complex(csm)) => {
                 csm.set_start_node_idx(options.generic.start_node_idx);
-                if me.is_canvas_update_ready() || !csm.is_transition_matrix_sized_correctly(nnodes)
+                if me.is_canvas_update_ready()
+                    || !csm.is_transition_matrix_sized_correctly(node_count)
                 {
-                    csm.set_transition_matrix_from(&me.matrix);
+                    csm.set_transition_matrix_from(&me.combined_matrix);
                 }
             }
             _ => (),

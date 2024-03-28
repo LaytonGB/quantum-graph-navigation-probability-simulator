@@ -30,10 +30,10 @@ impl Editor for ClassicalMatrixEditor {
 }
 
 impl ClassicalMatrixEditor {
-    pub fn new(size: usize) -> Self {
-        let text_fields = vec![format!("{}", 0.0); size * size];
+    pub fn new(node_count: usize) -> Self {
+        let text_fields = vec![format!("{}", 0.0); node_count * node_count];
         Self {
-            matrix: DMatrix::from_element(size, size, 0.0),
+            matrix: DMatrix::from_element(node_count, node_count, 0.0),
             math_constants: Self::get_math_constants(),
             previous_text_fields: text_fields.clone(),
             text_fields,

@@ -37,9 +37,9 @@ impl EframeApp {
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
+        // if let Some(storage) = cc.storage {
+        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        // }
 
         Default::default()
     }
@@ -73,7 +73,7 @@ impl eframe::App for EframeApp {
         self.editors
             .sync_editors(&self.options, self.canvas.nodes.len());
         self.update_canvas_from_editors();
-        self.update_editors_from_canvas(&self.canvas.lines_as_idx_tuples());
+        self.update_editors_from_canvas(&self.canvas.get_lines_as_idx_tuples());
 
         self.show_top_panel(ctx);
         self.show_left_panel(ctx);
@@ -113,8 +113,7 @@ impl EframeApp {
         if self.layout.tools {
             egui::SidePanel::new(Side::Left, "left_panel").show(ctx, |ui| {
                 ui.heading("Tools");
-                let mut tool_buttons: Vec<Tool> =
-                    vec![Tool::Move, Tool::Node, Tool::Line, Tool::Label];
+                let mut tool_buttons: [Tool; 4] = [Tool::Move, Tool::Node, Tool::Line, Tool::Label];
                 for tool in tool_buttons.iter_mut() {
                     tool.show(
                         ui,
@@ -150,15 +149,15 @@ impl EframeApp {
                                 .show_classical_editors(ui, self.canvas.nodes.len());
 
                             let state_data = self.editors.get_state_data();
-                            self.canvas.add_state_data(state_data);
+                            self.canvas.set_state_data(state_data);
                         }
                         Mode::Quantum => {
                             ui.separator();
                             self.editors
-                                .show_quantum_editors(ui, self.canvas.nodes.len());
+                                .show_quantum_editors(ui, &self.canvas.get_lines_as_idx_tuples());
 
                             let state_data = self.editors.get_state_data();
-                            self.canvas.add_state_data(state_data);
+                            self.canvas.set_state_data(state_data);
                         }
                         _ => {}
                     }
@@ -169,10 +168,10 @@ impl EframeApp {
 
     fn show_center_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            let state_data = self.editors.get_state_data();
+            self.canvas.set_state_data(state_data);
             self.canvas
                 .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
-            let state_data = self.editors.get_state_data();
-            self.canvas.add_state_data(state_data);
         });
     }
 
@@ -264,7 +263,7 @@ impl EframeApp {
             }
             (Mode::Quantum, None, MatrixEditor::Complex(matrix_editor)) => {
                 if matrix_editor.is_canvas_update_ready() {
-                    let matrix = &matrix_editor.matrix;
+                    let matrix = &matrix_editor.combined_matrix;
                     let canvas = &mut self.canvas;
                     Self::update_edges_from_complex_matrix(matrix, canvas);
                     matrix_editor.on_canvas_updated();

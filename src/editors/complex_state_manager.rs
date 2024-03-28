@@ -52,23 +52,24 @@ impl ComplexStateManager {
         }
     }
 
+    // TODO quantum state data
     pub(crate) fn get_state_data(&self) -> DVector<f64> {
-        let nnodes = (self.state.nrows() as f64).sqrt() as usize;
-        if nnodes == 0 {
-            return DVector::from_element(0, 0.0);
-        }
+        let node_count = (self.state.nrows() as f64).sqrt() as usize;
+        // if node_count == 0 {
+        return DVector::from_element(0, 0.0);
+        // }
 
         // sum every nnodes elements to get the state of each node
         // BUG is this the correct way to sum the elements?
         // BUG adjust chunk sizing based on resized matrix
-        let res = DVector::from_iterator(
-            nnodes,
-            self.state
-                .as_slice()
-                .chunks(nnodes)
-                .map(|x| x.into_iter().map(|x| x.norm_sqr().sqrt()).sum::<f64>()),
-        );
-        res.iter().sum::<f64>().powi(-1) * res
+        // let res = DVector::from_iterator(
+        //     node_count,
+        //     self.state
+        //         .as_slice()
+        //         .chunks(node_count)
+        //         .map(|x| x.into_iter().map(|x| x.norm_sqr().sqrt()).sum::<f64>()),
+        // );
+        // res.iter().sum::<f64>().powi(-1) * res
     }
 
     pub(crate) fn reset_state(&mut self) {

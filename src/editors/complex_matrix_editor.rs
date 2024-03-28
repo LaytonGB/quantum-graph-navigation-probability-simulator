@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use evalexpr::{context_map, eval_with_context, HashMapContext, Value};
 use nalgebra::{Complex, DMatrix};
@@ -7,12 +7,17 @@ use super::Editor;
 
 #[derive(Debug, Clone)]
 pub struct ComplexMatrixEditor {
-    pub matrix: DMatrix<Complex<f64>>,
+    pub scatter_matrix: DMatrix<Complex<f64>>,
+    pub propagation_matrix: DMatrix<Complex<f64>>,
+    pub combined_matrix: DMatrix<Complex<f64>>,
 
     math_constants: HashMapContext,
 
-    previous_text_fields: Vec<(String, String)>,
-    pub text_fields: Vec<(String, String)>,
+    index_map: HashMap<(usize, usize), usize>,
+    labels: Vec<(usize, usize)>,
+
+    previous_text_fields: Vec<Vec<(String, String)>>,
+    pub text_fields: Vec<Vec<(String, String)>>,
 
     text_fields_modified: bool,
 
@@ -30,14 +35,88 @@ impl Editor for ComplexMatrixEditor {
 }
 
 impl ComplexMatrixEditor {
-    pub fn new(size: usize) -> Self {
-        let n = size * size;
-        let text_fields = vec![(format!("{}", 0.0), format!("{}", 0.0)); n * n];
+    pub fn new(edges: &Vec<(usize, usize)>) -> Self {
+        // let node_edge_counts = edges.iter().fold(HashMap::new(), |mut m, (i, j)| {
+        //     m.entry(*i).and_modify(|e| *e += 1).or_insert(1);
+        //     m.entry(*j).and_modify(|e| *e += 1).or_insert(1);
+        //     m
+        // });
+
+        let mut adjacency_list = edges.iter().fold(HashMap::new(), |mut m, (i, j)| {
+            m.entry(*i)
+                .and_modify(|e: &mut Vec<usize>| e.push(*j))
+                .or_insert(vec![*j]);
+            m.entry(*j)
+                .and_modify(|e: &mut Vec<usize>| e.push(*i))
+                .or_insert(vec![*i]);
+            m
+        });
+        adjacency_list.values_mut().for_each(|v| v.sort_unstable());
+
+        let mut labels = adjacency_list.iter().collect::<Vec<_>>();
+        labels.sort_unstable();
+        let labels: Vec<(usize, usize)> = labels
+            .into_iter()
+            .flat_map(|(i, v)| v.iter().map(move |j| (*i, *j)))
+            .collect();
+
+        let half_edge_count = labels.len();
+
+        let index_map = labels
+            .iter()
+            .enumerate()
+            .fold(HashMap::new(), |mut m, (i, (a, b))| {
+                m.insert((*a, *b), i);
+                m
+            });
+
+        // TODO allow customization
+        // currently always assuming line-graph
+        let scatter_matrix =
+            DMatrix::from_element(half_edge_count, half_edge_count, Complex::new(0.0, 0.0));
+
+        // FIXME populate the scatter matrix
+        // let nodes_with_edges_count = node_edge_counts.len();
+        // for i in 0..nodes_with_edges_count {
+        //     scatter_matrix[(i, i)] = Complex::new(1.0, 0.0);
+        //     scatter_matrix[(i + 1, i)] = Complex::new(0.0, 1.0);
+        //     scatter_matrix[(i, i + 1)] = Complex::new(0.0, 1.0);
+        //     scatter_matrix[(i + 1, i + 1)] = Complex::new(1.0, 0.0);
+        // }
+
+        // TODO allow customization
+        // currently always assuming line-graph
+        let propagation_matrix = DMatrix::from_fn(half_edge_count, half_edge_count, |i, j| {
+            // where the coordinates point to some node that has 2 edges, eg 0->0, 0->1
+            // being on some edge 0->1 would then place the particle on edge 1->0
+            // 0, 1
+            // 1, 0
+            if i == j + 1 || j == i + 1 {
+                Complex::new(1.0, 0.0)
+            } else {
+                Complex::new(0.0, 0.0)
+            }
+        });
+
+        let text_fields =
+            vec![vec![(format!("{}", 0.0), format!("{}", 0.0)); half_edge_count]; half_edge_count];
         Self {
-            matrix: DMatrix::from_element(n, n, Complex::new(0.0, 0.0)),
+            propagation_matrix,
+            scatter_matrix,
+            combined_matrix: DMatrix::from_element(
+                half_edge_count,
+                half_edge_count,
+                Complex::new(0.0, 0.0),
+            ),
+
             math_constants: Self::get_math_constants(),
+
+            index_map,
+            labels,
+
             previous_text_fields: text_fields.clone(),
             text_fields,
+
             text_fields_modified: false,
             is_canvas_update_ready: false,
         }
@@ -58,86 +137,79 @@ impl ComplexMatrixEditor {
     }
 
     fn show_text_fields(&mut self, ui: &mut egui::Ui) {
-        if self.matrix.ncols() == 0 {
+        if self.combined_matrix.ncols() == 0 {
             return;
         }
 
-        let n = (self.matrix.nrows() as f64).sqrt() as usize;
+        // add column headers
         ui.label("");
-        for i in 0..n {
-            for j in 0..n {
-                ui.label(format!("{}->{}", i, j));
-                ui.label("");
-            }
+        println!("{:?}", self.labels);
+        for (i, j) in self.labels.iter() {
+            ui.label(format!("{}->{}", i, j));
+            ui.label("");
         }
         ui.end_row();
 
-        let (mut n1, mut n2) = (0, 0);
+        // add each row header, then row text inputs
+        let mut label_iter = self.labels.iter();
         for i in 0..self.text_fields.len() {
-            if i % self.matrix.ncols() == 0 {
-                ui.label(format!("{}->{}", n1, n2));
-
-                n2 += 1;
-                if n2 == n {
-                    n1 += 1;
-                    n2 = 0;
+            for j in 0..self.text_fields[i].len() {
+                // add row header at row start
+                if j == 0 {
+                    let label = label_iter.next().unwrap();
+                    ui.label(format!("{}->{}", label.0, label.1));
                 }
-            }
 
-            let re = ui.text_edit_singleline(&mut self.text_fields[i].0);
-            if re.lost_focus() {
-                self.text_fields_modified = true;
-            }
+                let re = ui.text_edit_singleline(&mut self.text_fields[i][j].0);
+                if re.lost_focus() {
+                    self.text_fields_modified = true;
+                }
 
-            let im = ui.text_edit_singleline(&mut self.text_fields[i].1);
-            if im.lost_focus() {
-                self.text_fields_modified = true;
-            }
+                let im = ui.text_edit_singleline(&mut self.text_fields[i][j].1);
+                if im.lost_focus() {
+                    self.text_fields_modified = true;
+                }
 
-            if (i + 1) % self.matrix.ncols() == 0 {
-                ui.end_row();
+                if j == self.text_fields[i].len() - 1 {
+                    ui.end_row();
+                }
             }
         }
     }
 
     fn apply_text_fields(&mut self) {
         for i in 0..self.text_fields.len() {
-            let re = eval_with_context(&self.text_fields[i].0, &self.math_constants);
-            let re = match re {
-                Ok(Value::Int(num)) => num as f64,
-                Ok(Value::Float(num)) => num,
-                _ => {
-                    self.text_fields[i] = self.previous_text_fields[i].clone();
-                    continue;
-                }
-            };
+            for j in 0..self.text_fields[i].len() {
+                let re = eval_with_context(&self.text_fields[i][j].0, &self.math_constants);
+                let re = match re {
+                    Ok(Value::Int(num)) => num as f64,
+                    Ok(Value::Float(num)) => num,
+                    _ => {
+                        self.text_fields[i][j] = self.previous_text_fields[i][j].clone();
+                        continue;
+                    }
+                };
 
-            let im = eval_with_context(&self.text_fields[i].1, &self.math_constants);
-            let im = match im {
-                Ok(Value::Int(num)) => num as f64,
-                Ok(Value::Float(num)) => num,
-                _ => {
-                    self.text_fields[i] = self.previous_text_fields[i].clone();
-                    continue;
-                }
-            };
+                let im = eval_with_context(&self.text_fields[i][j].1, &self.math_constants);
+                let im = match im {
+                    Ok(Value::Int(num)) => num as f64,
+                    Ok(Value::Float(num)) => num,
+                    _ => {
+                        self.text_fields[i] = self.previous_text_fields[i].clone();
+                        continue;
+                    }
+                };
 
-            self.set_ith_element(i, Complex::new(re, im));
+                self.set_value(i, j, Complex::new(re, im));
+            }
         }
         self.previous_text_fields = self.text_fields.clone();
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
     }
 
-    fn set_ith_element(&mut self, i: usize, value: Complex<f64>) {
-        let (row, col) = self.ith_index_to_row_col(i);
-        self.matrix[(row, col)] = value;
-    }
-
-    fn ith_index_to_row_col(&self, i: usize) -> (usize, usize) {
-        let nrows = self.matrix.nrows();
-        let ncols = self.matrix.ncols();
-        (i / nrows, i % ncols)
+    fn set_value(&mut self, row: usize, col: usize, value: Complex<f64>) {
+        self.combined_matrix[(row, col)] = value;
     }
 
     fn get_math_constants() -> HashMapContext {
@@ -149,76 +221,12 @@ impl ComplexMatrixEditor {
         .unwrap()
     }
 
-    pub(crate) fn resize_matrix(&mut self, size: usize) {
-        if self.matrix.nrows() == size {
-            return;
-        }
-
-        let old_matrix = self.matrix.clone();
-        let old_size = old_matrix.nrows();
-        self.matrix = DMatrix::from_element(size, size, Complex::new(0.0, 0.0));
-        for i in 0..size {
-            for j in 0..size {
-                if i < old_size && j < old_size {
-                    self.matrix[(i, j)] = old_matrix[(i, j)];
-                }
-            }
-        }
-
-        let old_text_fields = self.text_fields.clone();
-        self.text_fields = vec![(format!("{}", 0.0), format!("{}", 0.0)); size * size];
-        for i in 0..size.min(old_size) {
-            for j in 0..size.min(old_size) {
-                if i < old_size && j < old_size {
-                    self.text_fields[i * size + j] = old_text_fields[i * old_size + j].clone();
-                }
-            }
-        }
-        self.previous_text_fields = self.text_fields.clone();
-    }
-
-    // BUG this doesn't work with the double-edge adjacency matrix
-    pub(crate) fn remove_node(&mut self, node_idxs: Vec<usize>) {
-        let n = node_idxs.len();
-        let mut new_matrix = DMatrix::from_element(
-            self.matrix.nrows() - n,
-            self.matrix.ncols() - n,
-            Complex::new(0.0, 0.0),
-        );
-        let mut new_text_fields = vec![
-            (format!("{}", 0.0), format!("{}", 0.0));
-            (self.matrix.nrows() - n) * (self.matrix.ncols() - n)
-        ];
-        let mut row_idx = 0;
-        for i in 0..self.matrix.nrows() {
-            if node_idxs.contains(&i) {
-                continue;
-            }
-            let mut col_idx = 0;
-            for j in 0..self.matrix.ncols() {
-                if node_idxs.contains(&j) {
-                    continue;
-                }
-
-                new_matrix[(row_idx, col_idx)] = self.matrix[(i, j)];
-                new_text_fields[row_idx * (self.matrix.nrows() - n) + col_idx] =
-                    self.text_fields[i * self.matrix.nrows() + j].clone();
-
-                col_idx += 1;
-            }
-            row_idx += 1;
-        }
-        self.matrix = new_matrix;
-        self.text_fields = new_text_fields;
-        self.previous_text_fields = self.text_fields.clone();
-    }
-
     /// To make it more clear to the user what values should be adjusted, the
     /// matrix is updated using the lines on the canvas. All the edges are
     /// considered to be undirected. Anywhere a line exists between a pair of
     /// nodes (i,j) the matrix will show a complex number 1+1i.
     pub(crate) fn update_from_canvas_edges(&mut self, edges: &Vec<(usize, usize)>) {
-        let matrix = &mut self.matrix;
+        let matrix = &mut self.combined_matrix;
 
         let edges: HashSet<(usize, usize)> = HashSet::from_iter(edges.iter().cloned());
         for i in 0..matrix.nrows() {
@@ -242,14 +250,22 @@ impl ComplexMatrixEditor {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct SerializedMatrixEditor {
     size: usize,
-    matrix: Vec<(f64, f64)>,
-    text_fields: Vec<(String, String)>,
+    combined_matrix: Vec<(f64, f64)>,
+    scatter_matrix: Vec<(f64, f64)>,
+    propagation_matrix: Vec<(f64, f64)>,
+    index_map: HashMap<(usize, usize), usize>,
+    labels: Vec<(usize, usize)>,
+    text_fields: Vec<Vec<(String, String)>>,
 }
 impl From<ComplexMatrixEditor> for SerializedMatrixEditor {
     fn from(m: ComplexMatrixEditor) -> Self {
         Self {
-            size: m.matrix.nrows(),
-            matrix: m.matrix.iter().map(|x| (x.re, x.im)).collect(),
+            size: m.combined_matrix.nrows(),
+            combined_matrix: m.combined_matrix.iter().map(|x| (x.re, x.im)).collect(),
+            scatter_matrix: m.scatter_matrix.iter().map(|x| (x.re, x.im)).collect(),
+            propagation_matrix: m.propagation_matrix.iter().map(|x| (x.re, x.im)).collect(),
+            index_map: m.index_map,
+            labels: m.labels,
             text_fields: m.text_fields,
         }
     }
@@ -257,15 +273,33 @@ impl From<ComplexMatrixEditor> for SerializedMatrixEditor {
 impl From<SerializedMatrixEditor> for ComplexMatrixEditor {
     fn from(m: SerializedMatrixEditor) -> Self {
         Self {
-            matrix: DMatrix::from_vec(
+            combined_matrix: DMatrix::from_vec(
                 m.size,
                 m.size,
-                m.matrix
+                m.combined_matrix
+                    .iter()
+                    .map(|(re, im)| Complex::new(*re, *im))
+                    .collect(),
+            ),
+            scatter_matrix: DMatrix::from_vec(
+                m.size,
+                m.size,
+                m.scatter_matrix
+                    .iter()
+                    .map(|(re, im)| Complex::new(*re, *im))
+                    .collect(),
+            ),
+            propagation_matrix: DMatrix::from_vec(
+                m.size,
+                m.size,
+                m.propagation_matrix
                     .iter()
                     .map(|(re, im)| Complex::new(*re, *im))
                     .collect(),
             ),
             math_constants: Self::get_math_constants(),
+            index_map: m.index_map,
+            labels: m.labels,
             previous_text_fields: m.text_fields.clone(),
             text_fields: m.text_fields,
             text_fields_modified: false,
