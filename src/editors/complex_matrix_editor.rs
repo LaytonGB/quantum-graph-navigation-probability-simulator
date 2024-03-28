@@ -13,11 +13,12 @@ pub struct ComplexMatrixEditor {
 
     math_constants: HashMapContext,
 
+    adjacency_list: HashMap<usize, Vec<usize>>,
     index_map: HashMap<(usize, usize), usize>,
     labels: Vec<(usize, usize)>,
 
-    previous_text_fields: Vec<Vec<(String, String)>>,
-    pub text_fields: Vec<Vec<(String, String)>>,
+    previous_text_fields: Vec<Vec<Vec<(String, String)>>>,
+    pub text_fields: Vec<Vec<Vec<(String, String)>>>,
 
     text_fields_modified: bool,
 
@@ -98,8 +99,19 @@ impl ComplexMatrixEditor {
             }
         });
 
-        let text_fields =
-            vec![vec![(format!("{}", 0.0), format!("{}", 0.0)); half_edge_count]; half_edge_count];
+        let mut sorted_adjacency_list = adjacency_list.keys().collect::<Vec<_>>();
+        sorted_adjacency_list.sort_unstable();
+        let text_fields = sorted_adjacency_list.iter().fold(Vec::new(), |mut v, k| {
+            let connections = adjacency_list.get(k).unwrap();
+            v.push(vec![
+                vec![
+                    (String::from("0"), String::from("0"));
+                    connections.len()
+                ];
+                connections.len()
+            ]);
+            v
+        });
         Self {
             propagation_matrix,
             scatter_matrix,
@@ -111,6 +123,7 @@ impl ComplexMatrixEditor {
 
             math_constants: Self::get_math_constants(),
 
+            adjacency_list,
             index_map,
             labels,
 
@@ -124,88 +137,83 @@ impl ComplexMatrixEditor {
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::horizontal().show(ui, |ui| {
-            egui::Grid::new("matrix_editor_grid")
-                .striped(true)
-                .spacing([10.0, 10.0])
-                .show(ui, |ui| {
-                    self.show_text_fields(ui);
-                    if self.text_fields_modified {
-                        self.apply_text_fields();
-                    }
-                });
+            self.show_text_fields(ui);
+            if self.text_fields_modified {
+                self.apply_text_fields();
+            }
         });
     }
 
     fn show_text_fields(&mut self, ui: &mut egui::Ui) {
-        if self.combined_matrix.ncols() == 0 {
+        if self.adjacency_list.is_empty() {
+            ui.label("No edges to show");
             return;
         }
 
-        // add column headers
-        ui.label("");
-        println!("{:?}", self.labels);
-        for (i, j) in self.labels.iter() {
-            ui.label(format!("{}->{}", i, j));
-            ui.label("");
-        }
-        ui.end_row();
+        // sort nodes into order
+        let mut from_nodes = self.adjacency_list.keys().copied().collect::<Vec<_>>();
+        from_nodes.sort_unstable();
 
-        // add each row header, then row text inputs
-        let mut label_iter = self.labels.iter();
-        for i in 0..self.text_fields.len() {
-            for j in 0..self.text_fields[i].len() {
-                // add row header at row start
-                if j == 0 {
-                    let label = label_iter.next().unwrap();
-                    ui.label(format!("{}->{}", label.0, label.1));
-                }
+        // display section for each node's connections
+        for (i, from) in from_nodes.iter().enumerate() {
+            let connections = self.adjacency_list.get(from).unwrap();
+            ui.collapsing(format!("Node {}", from), |ui| {
+                egui::Grid::new(format!("node_{}_editor_grid", from))
+                    .striped(true)
+                    .spacing([10.0, 10.0])
+                    .show(ui, |ui| {
+                        // add column headers
+                        ui.label(""); // empty label to pad for row headers
+                        for to in connections.iter() {
+                            ui.label(format!("{}->{}", from, to));
+                            ui.label(""); // empty label to keep aligned with text fields (real + imaginary)
+                        }
+                        ui.end_row();
 
-                let re = ui.text_edit_singleline(&mut self.text_fields[i][j].0);
-                if re.lost_focus() {
-                    self.text_fields_modified = true;
-                }
+                        for (j, to) in connections.iter().enumerate() {
+                            ui.label(format!("{}->{}", from, to)); // row header
 
-                let im = ui.text_edit_singleline(&mut self.text_fields[i][j].1);
-                if im.lost_focus() {
-                    self.text_fields_modified = true;
-                }
-
-                if j == self.text_fields[i].len() - 1 {
-                    ui.end_row();
-                }
-            }
+                            let text_fields = &mut self.text_fields[i][j];
+                            for field in text_fields.iter_mut() {
+                                ui.text_edit_singleline(&mut field.0);
+                                ui.text_edit_singleline(&mut field.1);
+                            }
+                            ui.end_row();
+                        }
+                    });
+            });
         }
     }
 
     fn apply_text_fields(&mut self) {
-        for i in 0..self.text_fields.len() {
-            for j in 0..self.text_fields[i].len() {
-                let re = eval_with_context(&self.text_fields[i][j].0, &self.math_constants);
-                let re = match re {
-                    Ok(Value::Int(num)) => num as f64,
-                    Ok(Value::Float(num)) => num,
-                    _ => {
-                        self.text_fields[i][j] = self.previous_text_fields[i][j].clone();
-                        continue;
-                    }
-                };
+        // for i in 0..self.text_fields.len() {
+        //     for j in 0..self.text_fields[i].len() {
+        //         let re = eval_with_context(&self.text_fields[i][j].0, &self.math_constants);
+        //         let re = match re {
+        //             Ok(Value::Int(num)) => num as f64,
+        //             Ok(Value::Float(num)) => num,
+        //             _ => {
+        //                 self.text_fields[i][j] = self.previous_text_fields[i][j].clone();
+        //                 continue;
+        //             }
+        //         };
 
-                let im = eval_with_context(&self.text_fields[i][j].1, &self.math_constants);
-                let im = match im {
-                    Ok(Value::Int(num)) => num as f64,
-                    Ok(Value::Float(num)) => num,
-                    _ => {
-                        self.text_fields[i] = self.previous_text_fields[i].clone();
-                        continue;
-                    }
-                };
+        //         let im = eval_with_context(&self.text_fields[i][j].1, &self.math_constants);
+        //         let im = match im {
+        //             Ok(Value::Int(num)) => num as f64,
+        //             Ok(Value::Float(num)) => num,
+        //             _ => {
+        //                 self.text_fields[i] = self.previous_text_fields[i].clone();
+        //                 continue;
+        //             }
+        //         };
 
-                self.set_value(i, j, Complex::new(re, im));
-            }
-        }
-        self.previous_text_fields = self.text_fields.clone();
-        self.text_fields_modified = false;
-        self.is_canvas_update_ready = true;
+        //         self.set_value(i, j, Complex::new(re, im));
+        //     }
+        // }
+        // self.previous_text_fields = self.text_fields.clone();
+        // self.text_fields_modified = false;
+        // self.is_canvas_update_ready = true;
     }
 
     fn set_value(&mut self, row: usize, col: usize, value: Complex<f64>) {
@@ -253,9 +261,10 @@ struct SerializedMatrixEditor {
     combined_matrix: Vec<(f64, f64)>,
     scatter_matrix: Vec<(f64, f64)>,
     propagation_matrix: Vec<(f64, f64)>,
+    adjacency_list: HashMap<usize, Vec<usize>>,
     index_map: HashMap<(usize, usize), usize>,
     labels: Vec<(usize, usize)>,
-    text_fields: Vec<Vec<(String, String)>>,
+    text_fields: Vec<Vec<Vec<(String, String)>>>,
 }
 impl From<ComplexMatrixEditor> for SerializedMatrixEditor {
     fn from(m: ComplexMatrixEditor) -> Self {
@@ -264,6 +273,7 @@ impl From<ComplexMatrixEditor> for SerializedMatrixEditor {
             combined_matrix: m.combined_matrix.iter().map(|x| (x.re, x.im)).collect(),
             scatter_matrix: m.scatter_matrix.iter().map(|x| (x.re, x.im)).collect(),
             propagation_matrix: m.propagation_matrix.iter().map(|x| (x.re, x.im)).collect(),
+            adjacency_list: m.adjacency_list,
             index_map: m.index_map,
             labels: m.labels,
             text_fields: m.text_fields,
@@ -298,6 +308,7 @@ impl From<SerializedMatrixEditor> for ComplexMatrixEditor {
                     .collect(),
             ),
             math_constants: Self::get_math_constants(),
+            adjacency_list: m.adjacency_list,
             index_map: m.index_map,
             labels: m.labels,
             previous_text_fields: m.text_fields.clone(),
