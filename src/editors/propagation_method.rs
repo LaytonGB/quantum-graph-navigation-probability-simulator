@@ -1,16 +1,6 @@
-use strum::{Display, EnumString, FromRepr, VariantArray};
+use strum::{Display, VariantArray};
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Display,
-    VariantArray,
-    EnumString,
-    FromRepr,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, Display, VariantArray, serde::Serialize, serde::Deserialize)]
 pub enum PropagationMethod {
     ExampleMatrix,
 }
