@@ -221,44 +221,6 @@ impl ComplexMatrixEditor {
             past_adjacencies += connections_count;
         }
 
-        /*
-        for i in 0..self.text_fields.len() {
-            for j in 0..self.text_fields[i].len() {
-                for k in 0..self.text_fields[j].len() {
-                    let re = eval_with_context(&self.text_fields[i][j][k].0, &self.math_constants);
-                    let re = match re {
-                        Ok(Value::Int(num)) => num as f64,
-                        Ok(Value::Float(num)) => num,
-                        _ => {
-                            self.text_fields[i][j] = self.previous_text_fields[i][j].clone();
-                            continue;
-                        }
-                    };
-
-                    let im = eval_with_context(&self.text_fields[i][j][k].1, &self.math_constants);
-                    let im = match im {
-                        Ok(Value::Int(num)) => num as f64,
-                        Ok(Value::Float(num)) => num,
-                        _ => {
-                            self.text_fields[i] = self.previous_text_fields[i].clone();
-                            continue;
-                        }
-                    };
-
-                    let node_num = from_nodes[i];
-                    let connection_count = self.adjacency_list.get(&node_num).unwrap().len();
-                    self.set_value(
-                        i + past_adjacencies + k / connection_count,
-                        j + past_adjacencies + k % connection_count,
-                        Complex::new(re, im),
-                    );
-
-                    past_adjacencies += connection_count;
-                }
-            }
-        }
-        */
-
         self.previous_text_fields = self.text_fields.clone();
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
