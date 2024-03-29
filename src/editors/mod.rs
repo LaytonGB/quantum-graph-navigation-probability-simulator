@@ -7,6 +7,7 @@ mod complex_transition_matrix;
 mod editor;
 mod editors_container;
 mod matrix_editor;
+mod propagation_method;
 mod state_manager;
 mod transition_matrix_correction_type;
 
@@ -19,5 +20,6 @@ pub use complex_transition_matrix::ComplexTransitionMatrix;
 pub use editor::Editor;
 pub use editors_container::EditorsContainer;
 pub use matrix_editor::MatrixEditor;
+pub use propagation_method::PropagationMethod;
 pub use state_manager::StateManager;
 pub use transition_matrix_correction_type::TransitionMatrixCorrectionType;

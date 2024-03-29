@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use evalexpr::{context_map, eval_with_context, HashMapContext, Value};
 use nalgebra::{Complex, DMatrix};
+use strum::VariantArray as _;
 
-use super::Editor;
+use super::{Editor, PropagationMethod};
 
 #[derive(Debug, Clone)]
 pub struct ComplexMatrixEditor {
@@ -16,6 +17,8 @@ pub struct ComplexMatrixEditor {
     self_traversing_nodes: Vec<bool>,
     adjacency_list: HashMap<usize, Vec<usize>>,
     labels: Vec<(usize, usize)>,
+
+    propagation_method: PropagationMethod,
 
     /// 3 vectors deep refer to: start node, end node, line of connections
     /// edges: a->b       a->c
@@ -89,6 +92,8 @@ impl ComplexMatrixEditor {
             adjacency_list,
             labels,
 
+            propagation_method: PropagationMethod::VARIANTS[0],
+
             previous_text_fields: text_fields.clone(),
             text_fields,
 
@@ -119,6 +124,20 @@ impl ComplexMatrixEditor {
         // sort nodes into order
         let mut from_nodes = self.adjacency_list.keys().copied().collect::<Vec<_>>();
         from_nodes.sort_unstable();
+
+        // decide propagation method from preset selection
+        // TODO add more methods
+        egui::ComboBox::from_label("Propagation method")
+            .selected_text(format!("{}", self.propagation_method))
+            .show_ui(ui, |ui| {
+                for method in PropagationMethod::VARIANTS {
+                    if ui.button(format!("{}", method)).clicked() {
+                        self.propagation_method = *method;
+                        self.propagation_matrix = Self::new_propagation_matrix(self.labels.len());
+                        self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
+                    }
+                }
+            });
 
         // display section for each node's connections
         for (i, from) in from_nodes.iter().enumerate() {
@@ -308,6 +327,7 @@ struct SerializedMatrixEditor {
     self_traversing_nodes: Vec<bool>,
     adjacency_list: HashMap<usize, Vec<usize>>,
     labels: Vec<(usize, usize)>,
+    propagation_method: PropagationMethod,
     text_fields: Vec<Vec<Vec<(String, String)>>>,
 }
 impl From<ComplexMatrixEditor> for SerializedMatrixEditor {
@@ -320,6 +340,7 @@ impl From<ComplexMatrixEditor> for SerializedMatrixEditor {
             self_traversing_nodes: m.self_traversing_nodes,
             adjacency_list: m.adjacency_list,
             labels: m.labels,
+            propagation_method: m.propagation_method,
             text_fields: m.text_fields,
         }
     }
@@ -355,6 +376,7 @@ impl From<SerializedMatrixEditor> for ComplexMatrixEditor {
             self_traversing_nodes: m.self_traversing_nodes,
             adjacency_list: m.adjacency_list,
             labels: m.labels,
+            propagation_method: m.propagation_method,
             previous_text_fields: m.text_fields.clone(),
             text_fields: m.text_fields,
             text_fields_modified: false,

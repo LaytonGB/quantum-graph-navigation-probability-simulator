@@ -6,8 +6,10 @@
     "Eframe",
     "egui",
     "evalexpr",
+    "Hadamard",
     "nalgebra",
     "ncols",
-    "nrows"
+    "nrows",
+    "Repr"
   ]
 }
