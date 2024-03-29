@@ -110,10 +110,10 @@ impl ComplexMatrixEditor {
                 self.apply_text_fields();
             }
         });
-        // println!("scatter: {}", self.scatter_matrix);
-        // println!("propagation: {}", self.propagation_matrix);
-        // println!("combined: {}", self.combined_matrix);
-        // println!("{:?}", self.text_fields);
+        ui.separator();
+        ui.heading("Preview");
+        self.show_preview_fields(ui);
+        ui.separator();
     }
 
     fn show_text_fields(&mut self, ui: &mut egui::Ui) {
@@ -315,6 +315,47 @@ impl ComplexMatrixEditor {
                 })
             }
         }
+    }
+
+    fn show_preview_fields(&self, ui: &mut egui::Ui) {
+        ui.collapsing("Scatter Matrix", |ui| {
+            self.display_matrix(ui, &self.scatter_matrix);
+        });
+        ui.collapsing("Propagation Matrix", |ui| {
+            self.display_matrix(ui, &self.propagation_matrix);
+        });
+        ui.collapsing("Combined Matrix", |ui| {
+            self.display_matrix(ui, &self.combined_matrix);
+        });
+    }
+
+    fn display_matrix(&self, ui: &mut egui::Ui, matrix: &DMatrix<Complex<f64>>) {
+        if self.labels.len() != matrix.nrows() || self.labels.len() != matrix.ncols() {
+            panic!("Matrix dimensions do not match labels")
+        }
+
+        egui::ScrollArea::horizontal().show(ui, |ui| {
+            egui::Grid::new("scatter_matrix_preview")
+                .striped(true)
+                .spacing([10.0, 10.0])
+                .show(ui, |ui| {
+                    // column headers
+                    ui.label(""); // empty label to pad for row headers
+                    for l in self.labels.iter() {
+                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                    }
+                    ui.end_row();
+
+                    // row headers and values
+                    for (i, l) in self.labels.iter().enumerate() {
+                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                        for j in 0..self.labels.len() {
+                            ui.label(format!("{}+{}i", matrix[(i, j)].re, matrix[(i, j)].im));
+                        }
+                        ui.end_row();
+                    }
+                });
+        });
     }
 
     fn get_math_constants() -> HashMapContext {
