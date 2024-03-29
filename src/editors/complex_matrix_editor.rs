@@ -210,8 +210,6 @@ impl ComplexMatrixEditor {
                         }
                     };
 
-                    let node_num = from_nodes[i];
-                    let connection_count = self.adjacency_list.get(&node_num).unwrap().len();
                     self.set_value(
                         past_adjacencies + j,
                         past_adjacencies + k,

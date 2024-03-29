@@ -2,7 +2,7 @@ use std::mem;
 
 use egui::Context;
 use egui::{panel::Side, Ui};
-use nalgebra::{Complex, DMatrix};
+use nalgebra::DMatrix;
 
 use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
@@ -31,7 +31,7 @@ pub struct EframeApp {
 
 impl EframeApp {
     /// Called once before the first frame.
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
@@ -270,20 +270,6 @@ impl EframeApp {
         for (i, j) in (0..matrix.nrows()).flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
         {
             if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
-                if canvas.is_line_between_nodes(i, j) {
-                    canvas.remove_line_between_nodes(i, j);
-                }
-            } else if !canvas.is_line_between_nodes(i, j) {
-                canvas.add_line_between_nodes(i, j);
-            }
-        }
-    }
-
-    fn update_edges_from_complex_matrix(matrix: &DMatrix<Complex<f64>>, canvas: &mut Canvas) {
-        for (i, j) in (0..matrix.nrows()).flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
-        {
-            if matrix[(i, j)] == Complex::new(0.0, 0.0) && matrix[(j, i)] == Complex::new(0.0, 0.0)
-            {
                 if canvas.is_line_between_nodes(i, j) {
                     canvas.remove_line_between_nodes(i, j);
                 }

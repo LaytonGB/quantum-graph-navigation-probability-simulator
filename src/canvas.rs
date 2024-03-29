@@ -471,10 +471,8 @@ impl Canvas {
     fn plot_show(
         &mut self,
         plot_ui: &mut PlotUi,
-        selected_tool: Tool,
         options: &Options,
         pointer_coords: Option<PlotPoint>,
-        global_pointer_coords: Option<Pos2>,
     ) {
         self.draw_lines(plot_ui, options);
         self.draw_nodes(plot_ui, options);
@@ -534,16 +532,9 @@ impl Canvas {
             .show(ui, |plot_ui| {
                 self.reset_values_by_tool(selected_tool);
 
-                let (pointer_coords, global_pointer_coords) =
-                    self.get_pointer_coords(plot_ui, options);
+                let (pointer_coords, global_pointer_coords) = self.get_pointer_coords(plot_ui);
 
-                self.plot_show(
-                    plot_ui,
-                    selected_tool,
-                    options,
-                    pointer_coords,
-                    global_pointer_coords,
-                );
+                self.plot_show(plot_ui, options, pointer_coords);
                 self.handle_interactions(
                     plot_ui,
                     selected_tool,
@@ -588,11 +579,7 @@ impl Canvas {
         });
     }
 
-    fn get_pointer_coords(
-        &self,
-        plot_ui: &PlotUi,
-        options: &Options,
-    ) -> (Option<PlotPoint>, Option<Pos2>) {
+    fn get_pointer_coords(&self, plot_ui: &PlotUi) -> (Option<PlotPoint>, Option<Pos2>) {
         let pointer_coords = plot_ui.pointer_coordinate();
         let global_pointer_coords = plot_ui
             .ctx()
