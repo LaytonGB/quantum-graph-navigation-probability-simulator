@@ -76,8 +76,9 @@ impl ComplexMatrixEditor {
             .map(|(k, v)| v.contains(k))
             .collect::<Vec<_>>();
 
+        let propagation_method = PropagationMethod::VARIANTS[0];
         let scatter_matrix = Self::new_scatter_matrix(half_edge_count);
-        let propagation_matrix = Self::new_propagation_matrix(half_edge_count);
+        let propagation_matrix = Self::new_propagation_matrix(propagation_method, half_edge_count);
 
         let text_fields = Self::new_text_fields(&adjacency_list);
 
@@ -92,7 +93,7 @@ impl ComplexMatrixEditor {
             adjacency_list,
             labels,
 
-            propagation_method: PropagationMethod::VARIANTS[0],
+            propagation_method,
 
             previous_text_fields: text_fields.clone(),
             text_fields,
@@ -109,7 +110,7 @@ impl ComplexMatrixEditor {
                 self.apply_text_fields();
             }
         });
-        println!("scatter: {}", self.scatter_matrix);
+        // println!("scatter: {}", self.scatter_matrix);
         // println!("propagation: {}", self.propagation_matrix);
         // println!("combined: {}", self.combined_matrix);
         // println!("{:?}", self.text_fields);
@@ -125,15 +126,17 @@ impl ComplexMatrixEditor {
         let mut from_nodes = self.adjacency_list.keys().copied().collect::<Vec<_>>();
         from_nodes.sort_unstable();
 
-        // decide propagation method from preset selection
-        // TODO add more methods
+        // display propagation method from preset selection
         egui::ComboBox::from_label("Propagation method")
             .selected_text(format!("{}", self.propagation_method))
             .show_ui(ui, |ui| {
                 for method in PropagationMethod::VARIANTS {
                     if ui.button(format!("{}", method)).clicked() {
                         self.propagation_method = *method;
-                        self.propagation_matrix = Self::new_propagation_matrix(self.labels.len());
+                        self.propagation_matrix = Self::new_propagation_matrix(
+                            self.propagation_method,
+                            self.labels.len(),
+                        );
                         self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
                     }
                 }
@@ -255,7 +258,8 @@ impl ComplexMatrixEditor {
         self.text_fields = Self::new_text_fields(&self.adjacency_list);
         self.previous_text_fields = self.text_fields.clone();
         self.scatter_matrix = Self::new_scatter_matrix(self.labels.len());
-        self.propagation_matrix = Self::new_propagation_matrix(self.labels.len());
+        self.propagation_matrix =
+            Self::new_propagation_matrix(self.propagation_method, self.labels.len());
         self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
     }
 
@@ -292,20 +296,25 @@ impl ComplexMatrixEditor {
         DMatrix::from_element(half_edge_count, half_edge_count, Complex::new(0.0, 0.0))
     }
 
-    fn new_propagation_matrix(half_edge_count: usize) -> DMatrix<Complex<f64>> {
-        // TODO allow customization
-        // currently always assuming line-graph
-        DMatrix::from_fn(half_edge_count, half_edge_count, |i, j| {
-            // where the coordinates point to some node that has 2 edges, eg 0->0, 0->1
-            // being on some edge 0->1 would then place the particle on edge 1->0
-            // 0, 1
-            // 1, 0
-            if i == j + 1 || j == i + 1 {
-                Complex::new(1.0, 0.0)
-            } else {
-                Complex::new(0.0, 0.0)
+    fn new_propagation_matrix(
+        propagation_method: PropagationMethod,
+        half_edge_count: usize,
+    ) -> DMatrix<Complex<f64>> {
+        match propagation_method {
+            PropagationMethod::ExampleMatrix => {
+                DMatrix::from_fn(half_edge_count, half_edge_count, |i, j| {
+                    // where the coordinates point to some node that has 2 edges, eg 0->0, 0->1
+                    // being on some edge 0->1 would then place the particle on edge 1->0
+                    // 0, 1
+                    // 1, 0
+                    if i == j + 1 || j == i + 1 {
+                        Complex::new(1.0, 0.0)
+                    } else {
+                        Complex::new(0.0, 0.0)
+                    }
+                })
             }
-        })
+        }
     }
 
     fn get_math_constants() -> HashMapContext {
