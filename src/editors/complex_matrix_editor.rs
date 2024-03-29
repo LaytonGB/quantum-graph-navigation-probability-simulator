@@ -243,6 +243,7 @@ impl ComplexMatrixEditor {
             past_adjacencies += connections_count;
         }
 
+        self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
         self.previous_text_fields = self.text_fields.clone();
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
@@ -350,7 +351,11 @@ impl ComplexMatrixEditor {
                     for (i, l) in self.labels.iter().enumerate() {
                         ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
                         for j in 0..self.labels.len() {
-                            ui.label(format!("{}+{}i", matrix[(i, j)].re, matrix[(i, j)].im));
+                            if matrix[(i, j)].l1_norm() == 0.0 {
+                                ui.label("-");
+                            } else {
+                                ui.label(format!("{}+{}i", matrix[(i, j)].re, matrix[(i, j)].im));
+                            }
                         }
                         ui.end_row();
                     }
