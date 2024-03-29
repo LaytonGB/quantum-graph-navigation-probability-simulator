@@ -285,7 +285,8 @@ impl EframeApp {
                 .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
         }
 
-        self.editors.update_editor_from_edges(edges);
+        self.editors
+            .update_editor_from_edges(edges, self.options.mode_change_data);
 
         self.options.clear_mode_change_data();
     }

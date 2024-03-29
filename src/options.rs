@@ -83,6 +83,7 @@ impl Options {
     }
 }
 
+// TODO use [`strum`] here
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Mode {
     #[default]

@@ -6,7 +6,7 @@ use crate::{
         matrix_editor::MatrixEditor, state_manager::StateManager, ClassicalMatrixEditor,
         ClassicalStateManager, ComplexMatrixEditor, ComplexStateManager, Editor,
     },
-    options::Options,
+    options::{Mode, Options},
 };
 
 #[derive(Debug, Default)]
@@ -180,10 +180,19 @@ impl EditorsContainer {
         }
     }
 
-    pub(crate) fn update_editor_from_edges(&mut self, edges: &Vec<(usize, usize)>) {
+    pub(crate) fn update_editor_from_edges(
+        &mut self,
+        edges: &Vec<(usize, usize)>,
+        mode_change_data: Option<(Mode, Mode)>,
+    ) {
         match &mut self.matrix_editor {
             MatrixEditor::Classical(me) => me.update_from_canvas_edges(edges),
-            MatrixEditor::Complex(_) => (),
+            MatrixEditor::Complex(_) => match mode_change_data {
+                Some((_, Mode::Quantum)) => {
+                    self.matrix_editor = MatrixEditor::Complex(ComplexMatrixEditor::new(edges));
+                }
+                _ => (),
+            },
             _ => (),
         }
     }
