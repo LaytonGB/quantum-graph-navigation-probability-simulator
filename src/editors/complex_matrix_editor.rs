@@ -250,7 +250,6 @@ impl ComplexMatrixEditor {
     }
 
     fn set_value(&mut self, row: usize, col: usize, value: Complex<f64>) {
-        println!("setting value at ({}, {}) to {:?}", row, col, value);
         self.scatter_matrix[(row, col)] = value;
     }
 
