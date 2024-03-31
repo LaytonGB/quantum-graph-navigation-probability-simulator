@@ -53,17 +53,17 @@ impl ClassicalStateManager {
     }
 
     pub(crate) fn get_state_data(&self) -> DVector<f64> {
-        let nnodes = (self.state.nrows() as f64).sqrt() as usize;
-        if nnodes == 0 {
+        let node_count = (self.state.nrows() as f64).sqrt() as usize;
+        if node_count == 0 {
             return DVector::from_element(0, 0.0);
         }
 
-        // sum every nnodes elements to get the state of each node
+        // sum every node_count elements to get the state of each node
         DVector::from_iterator(
-            nnodes,
+            node_count,
             self.state
                 .as_slice()
-                .chunks(nnodes)
+                .chunks(node_count)
                 .map(|x| x.into_iter().sum::<f64>()),
         )
     }
@@ -90,8 +90,8 @@ impl ClassicalStateManager {
         self.step
     }
 
-    pub(crate) fn is_transition_matrix_sized_correctly(&self, nnodes: usize) -> bool {
-        nnodes.pow(2) == self.transition_matrix.matrix.ncols()
+    pub(crate) fn is_transition_matrix_sized_correctly(&self, node_count: usize) -> bool {
+        node_count.pow(2) == self.transition_matrix.matrix.ncols()
     }
 
     pub(crate) fn set_start_node_idx(&mut self, start_node_idx: usize) {

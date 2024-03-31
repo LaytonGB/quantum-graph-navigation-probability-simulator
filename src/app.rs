@@ -31,15 +31,15 @@ pub struct EframeApp {
 
 impl EframeApp {
     /// Called once before the first frame.
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        // if let Some(storage) = cc.storage {
-        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        // }
+        if let Some(storage) = cc.storage {
+            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        }
 
         Default::default()
     }
@@ -153,8 +153,11 @@ impl EframeApp {
                         }
                         Mode::Quantum => {
                             ui.separator();
-                            self.editors
-                                .show_quantum_editors(ui, &self.canvas.get_lines_as_idx_tuples());
+                            self.editors.show_quantum_editors(
+                                ui,
+                                &self.options,
+                                &self.canvas.get_lines_as_idx_tuples(),
+                            );
 
                             let state_data = self.editors.get_state_data();
                             self.canvas.set_state_data(state_data);

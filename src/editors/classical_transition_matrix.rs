@@ -49,13 +49,13 @@ impl TryFrom<&DMatrix<f64>> for ClassicalTransitionMatrix {
 
 impl ClassicalTransitionMatrix {
     pub fn get_initial_state(&self, start_node_idx: &Option<usize>) -> DVector<f64> {
-        let nnodes = (self.matrix.ncols() as f64).sqrt() as usize;
+        let node_count = (self.matrix.ncols() as f64).sqrt() as usize;
         let mut res = DVector::from_element(self.matrix.ncols(), 0.0);
         if res.len() == 0 {
             return res;
         }
         let start_node_idx = start_node_idx
-            .and_then(|x| Some(x * nnodes + x))
+            .and_then(|x| Some(x * node_count + x))
             .unwrap_or(0);
         res[start_node_idx] = 1.0;
         res

@@ -1,11 +1,10 @@
-use anyhow::{anyhow, Result};
 use nalgebra::{Complex, DMatrix, DVector, Dyn};
 
 use super::transition_matrix_correction_type::TransitionMatrixCorrectionType;
 
 #[derive(Debug, Clone)]
 pub struct ComplexTransitionMatrix {
-    pub matrix: DMatrix<Complex<f64>>,
+    matrix: DMatrix<Complex<f64>>,
     max_error: f64,
 }
 
@@ -16,34 +15,38 @@ impl std::fmt::Display for ComplexTransitionMatrix {
 }
 
 impl ComplexTransitionMatrix {
-    pub fn new(matrix: DMatrix<Complex<f64>>) -> Result<Self> {
-        if matrix.nrows() != matrix.ncols() {
-            return Err(anyhow!("Matrix must be square"));
-        }
-        Ok(Self {
+    pub fn new(matrix: DMatrix<Complex<f64>>) -> Self {
+        println!(
+            "COMPLEX TRANSITION MATRIX CONSTRUCTED FROM SOME MATRIX: {}",
+            matrix
+        );
+        let mut res = Self {
             matrix,
             max_error: 1e-10,
-        })
+        };
+        res.normalize_unitary();
+        res
     }
 
-    pub fn get_initial_state(&self, start_node_idx: &Option<usize>) -> DVector<Complex<f64>> {
-        let node_count = (self.matrix.ncols() as f64).sqrt() as usize;
+    pub fn get_complex_matrix(&self) -> &DMatrix<Complex<f64>> {
+        &self.matrix
+    }
+
+    // TODO make start node usable
+    pub fn get_initial_state(&self, _start_node_idx: Option<usize>) -> DVector<Complex<f64>> {
         let mut res = DVector::from_element(self.matrix.ncols(), Complex::new(0.0, 0.0));
         if res.len() == 0 {
             return res;
         }
-        let start_node_idx = start_node_idx
-            .and_then(|x| Some(x * node_count + x))
-            .unwrap_or(0);
+        let start_node_idx = 0;
         res[start_node_idx] = Complex::new(1.0, 0.0);
         res
     }
 
-    pub fn apply(&self, state: DVector<Complex<f64>>) -> Result<DVector<Complex<f64>>> {
-        if state.len() != self.matrix.ncols() {
-            return Err(anyhow!("Matrix dimensions do not match"));
-        }
-        Ok(&self.matrix * state)
+    pub fn apply(&self, state: DVector<Complex<f64>>) -> DVector<Complex<f64>> {
+        println!("STATE: {}", state);
+        println!("TRANSITION: {}", self.matrix);
+        &self.matrix * state
     }
 
     pub fn normalize_unitary(&mut self) -> TransitionMatrixCorrectionType {
@@ -52,6 +55,7 @@ impl ComplexTransitionMatrix {
             return TransitionMatrixCorrectionType::None;
         }
 
+        // correct values and store the amount of correction
         let mut correction_values = DVector::from_element(n, 0.0);
         let mut svd = self.matrix.clone().svd(true, true);
         svd.singular_values
@@ -108,7 +112,7 @@ mod tests {
                 Complex::new(0.0, 1.0),
             ],
         ) / Complex::from(2.0_f64.sqrt());
-        let mut unitary_transition_matrix = ComplexTransitionMatrix::new(unitary_matrix).unwrap();
+        let mut unitary_transition_matrix = ComplexTransitionMatrix::new(unitary_matrix);
         let correction_type = unitary_transition_matrix.normalize_unitary();
         assert_eq!(correction_type, TransitionMatrixCorrectionType::None);
 
@@ -122,8 +126,7 @@ mod tests {
                 Complex::new(0.0, 1.0),
             ],
         );
-        let mut scalar_transition_matrix =
-            ComplexTransitionMatrix::new(scalar_unitary_matrix).unwrap();
+        let mut scalar_transition_matrix = ComplexTransitionMatrix::new(scalar_unitary_matrix);
         let correction_type = scalar_transition_matrix.normalize_unitary();
         assert_eq!(
             correction_type,
@@ -141,7 +144,7 @@ mod tests {
             ],
         );
         let mut non_scalar_transition_matrix =
-            ComplexTransitionMatrix::new(non_scalar_unitary_matrix).unwrap();
+            ComplexTransitionMatrix::new(non_scalar_unitary_matrix);
         let correction_type = non_scalar_transition_matrix.normalize_unitary();
         let correction_values = match correction_type {
             TransitionMatrixCorrectionType::NonScalar(x) => x,

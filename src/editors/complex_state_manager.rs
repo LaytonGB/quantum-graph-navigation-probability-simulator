@@ -1,87 +1,67 @@
-use anyhow::{anyhow, Error, Result};
-use nalgebra::{Complex, DMatrix, DVector};
+use nalgebra::{Complex, DMatrix, DVector, Normed};
 
 use super::complex_transition_matrix::ComplexTransitionMatrix;
 
 #[derive(Debug, Clone)]
 pub struct ComplexStateManager {
     state: DVector<Complex<f64>>,
+    probability_vector: DVector<f64>,
+    is_state_updated: bool,
     step: usize,
     transition_matrix: ComplexTransitionMatrix,
     start_node_idx: Option<usize>,
 }
 
-impl TryFrom<&DMatrix<Complex<f64>>> for ComplexStateManager {
-    type Error = Error;
-
-    fn try_from(matrix: &DMatrix<Complex<f64>>) -> Result<Self, Self::Error> {
-        match ComplexTransitionMatrix::new(matrix.clone()) {
-            Ok(transition_matrix) => {
-                let initial_state = transition_matrix.get_initial_state(&None);
-                let mut res = Self {
-                    state: initial_state,
-                    step: 0,
-                    transition_matrix,
-                    start_node_idx: None,
-                };
-
-                // TODO implement for reset button also
-                // state starts on edge 0,0. this scatters the state to the
-                // relevant edges without adding to steps.
-                match res.step_forward() {
-                    Ok(_) => {
-                        res.step = 0;
-                        Ok(res)
-                    }
-                    Err(e) => Err(e),
-                }
-            }
-            Err(e) => Err(anyhow!(e)),
-        }
-    }
-}
-
 impl ComplexStateManager {
-    pub fn step_forward(&mut self) -> Result<()> {
-        self.step += 1;
-        if let Ok(updated_state) = self.transition_matrix.apply(self.state.clone()) {
-            self.state = updated_state;
-            Ok(())
-        } else {
-            Err(anyhow!("Failed to apply transition matrix, try updating the transition matrix from the matrix editor"))
-        }
+    pub fn new(matrix: &DMatrix<Complex<f64>>, start_node_idx: usize) -> Self {
+        let transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
+
+        let initial_state = transition_matrix.get_initial_state(Some(start_node_idx));
+        let mut res = Self {
+            state: initial_state,
+            probability_vector: DVector::from_element(0, 0.0),
+            is_state_updated: true,
+            step: 0,
+            transition_matrix,
+            start_node_idx: None,
+        };
+
+        // TODO implement for reset button also
+        // state starts on edge 0,0. this scatters the state to the
+        // relevant edges without adding to steps.
+        res.step_forward();
+        res.step = 0;
+        res
     }
 
-    // TODO quantum state data
-    pub(crate) fn get_state_data(&self) -> DVector<f64> {
-        // let node_count = (self.state.nrows() as f64).sqrt() as usize;
-        // if node_count == 0 {
-        return DVector::from_element(0, 0.0);
-        // }
+    pub fn step_forward(&mut self) {
+        self.step += 1;
+        self.state = self.transition_matrix.apply(self.state.clone());
+        self.is_state_updated = true;
+    }
 
-        // sum every node_count elements to get the state of each node
-        // BUG is this the correct way to sum the elements?
-        // BUG adjust chunk sizing based on resized matrix
-        // let res = DVector::from_iterator(
-        //     node_count,
-        //     self.state
-        //         .as_slice()
-        //         .chunks(node_count)
-        //         .map(|x| x.into_iter().map(|x| x.norm_sqr().sqrt()).sum::<f64>()),
-        // );
-        // res.iter().sum::<f64>().powi(-1) * res
+    pub(crate) fn get_state_data(&mut self) -> DVector<f64> {
+        if self.is_state_updated {
+            self.update_probability_vector();
+            self.is_state_updated = false;
+        }
+        self.probability_vector.clone()
     }
 
     pub(crate) fn reset_state(&mut self) {
         self.step = 0;
         self.state = self
             .transition_matrix
-            .get_initial_state(&self.start_node_idx);
+            .get_initial_state(self.start_node_idx);
+        self.is_state_updated = true;
     }
 
-    pub(crate) fn set_transition_matrix_from(&mut self, matrix: &DMatrix<Complex<f64>>) {
-        if let Ok(new_transition_matrix) = ComplexTransitionMatrix::new(matrix.clone()) {
-            self.transition_matrix = new_transition_matrix;
+    pub(crate) fn make_transition_matrix_compatible(&mut self, matrix: &DMatrix<Complex<f64>>) {
+        println!("CHECKING TRANSITION MATRIX COMPATIBILITY");
+        if self.state.len() != matrix.ncols() || self.probability_vector.len() != matrix.ncols() {
+            println!("TRANSITION MATRIX IS NOT COMPATIBLE - UPDATING");
+            self.transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
+            self.reset_state();
         }
     }
 
@@ -89,11 +69,28 @@ impl ComplexStateManager {
         self.step
     }
 
-    pub(crate) fn is_transition_matrix_sized_correctly(&self, node_count: usize) -> bool {
-        node_count.pow(2) == self.transition_matrix.matrix.ncols()
-    }
-
     pub(crate) fn set_start_node_idx(&mut self, start_node_idx: usize) {
         self.start_node_idx = Some(start_node_idx);
+    }
+
+    pub(crate) fn set_transition_matrix_from(
+        &mut self,
+        get_combined_matrix: &DMatrix<Complex<f64>>,
+    ) {
+        self.transition_matrix = ComplexTransitionMatrix::new(get_combined_matrix.clone());
+    }
+
+    fn update_probability_vector(&mut self) {
+        self.probability_vector = if self.state.nrows() == 0 {
+            DVector::from_element(0, 0.0)
+        } else {
+            // collapse rows
+            DVector::from_iterator(
+                self.state.nrows(),
+                self.state
+                    .row_iter()
+                    .map(|row| row.iter().map(|x| x.norm()).sum()),
+            )
+        };
     }
 }

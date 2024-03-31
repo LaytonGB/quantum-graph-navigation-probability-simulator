@@ -8,9 +8,9 @@ use super::{Editor, PropagationMethod};
 
 #[derive(Debug, Clone)]
 pub struct ComplexMatrixEditor {
-    pub scatter_matrix: DMatrix<Complex<f64>>,
-    pub propagation_matrix: DMatrix<Complex<f64>>,
-    pub combined_matrix: DMatrix<Complex<f64>>,
+    scatter_matrix: DMatrix<Complex<f64>>,
+    propagation_matrix: DMatrix<Complex<f64>>,
+    combined_matrix: DMatrix<Complex<f64>>,
 
     math_constants: HashMapContext,
 
@@ -369,6 +369,10 @@ impl ComplexMatrixEditor {
             "tau" => std::f64::consts::TAU,
         }
         .unwrap()
+    }
+
+    pub fn get_combined_matrix(&self) -> &DMatrix<Complex<f64>> {
+        &self.combined_matrix
     }
 }
 
