@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use nalgebra::{Complex, DMatrix, DVector, Normed};
 
 use super::complex_transition_matrix::ComplexTransitionMatrix;
@@ -40,9 +42,12 @@ impl ComplexStateManager {
         self.is_state_updated = true;
     }
 
-    pub(crate) fn get_state_data(&mut self) -> DVector<f64> {
+    pub(crate) fn get_state_data(
+        &mut self,
+        adjacency_list: &HashMap<usize, Vec<usize>>,
+    ) -> DVector<f64> {
         if self.is_state_updated {
-            self.update_probability_vector();
+            self.update_probability_vector(adjacency_list);
             self.is_state_updated = false;
         }
         self.probability_vector.clone()
@@ -57,7 +62,10 @@ impl ComplexStateManager {
     }
 
     pub(crate) fn make_transition_matrix_compatible(&mut self, matrix: &DMatrix<Complex<f64>>) {
-        if self.state.len() != matrix.ncols() || self.probability_vector.len() != matrix.ncols() {
+        // TODO add a check for the probability vector
+        if self.state.len() != matrix.ncols()
+        /*  || self.probability_vector.len() != matrix.ncols() */
+        {
             self.transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
             self.reset_state();
         }
@@ -78,28 +86,42 @@ impl ComplexStateManager {
         self.transition_matrix = ComplexTransitionMatrix::new(get_combined_matrix.clone());
     }
 
-    fn update_probability_vector(&mut self) {
+    fn update_probability_vector(&mut self, adjacency_list: &HashMap<usize, Vec<usize>>) {
         self.probability_vector = if self.state.nrows() == 0 {
             DVector::from_element(0, 0.0)
         } else {
             // collapse rows
-            DVector::from_iterator(
+            let temp = DVector::from_iterator(
                 self.state.nrows(),
                 self.state
                     .row_iter()
-                    .map(|row| row.iter().map(|x| x.norm()).sum()),
-            )
+                    .map(|row| row.iter().map(|x| x.norm()).sum::<f64>()),
+            );
+
+            // collapse adjacent columns
+            let mut res = DVector::from_element(adjacency_list.len(), 0.0);
+            for i in 0..adjacency_list.len() {
+                for j in 0..adjacency_list.get(&i).unwrap().len() {
+                    res[i] += temp[i + j];
+                }
+            }
+            res
         };
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, labels: &[(usize, usize)]) {
+    pub fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        labels: &[(usize, usize)],
+        adjacency_list: &HashMap<usize, Vec<usize>>,
+    ) {
         ui.heading("State");
 
         ui.collapsing("Complex", |ui| {
             self.display_complex_vector(ui, &self.state, labels);
         });
 
-        let probability_vector = self.get_state_data();
+        let probability_vector = self.get_state_data(adjacency_list);
         ui.collapsing("As Probabilities", |ui| {
             self.display_float_vector(ui, &probability_vector, labels)
         });
@@ -144,6 +166,8 @@ impl ComplexStateManager {
         vector: &DVector<f64>,
         labels: &[(usize, usize)],
     ) {
+        let mut labels = labels.iter().map(|x| x.0).collect::<Vec<_>>();
+        labels.dedup();
         if labels.len() != vector.nrows() {
             panic!("Matrix dimensions do not match labels")
         }
@@ -155,7 +179,7 @@ impl ComplexStateManager {
                 .show(ui, |ui| {
                     // column headers
                     for l in labels.iter() {
-                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                        ui.label(egui::RichText::new(format!("{}", l)).strong());
                     }
                     ui.end_row();
 

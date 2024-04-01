@@ -112,7 +112,8 @@ impl EditorsContainer {
             }
         }
 
-        self.state_manager.show(ui, cme.get_labels());
+        self.state_manager
+            .show(ui, options, cme.get_labels(), cme.get_adjacency_list());
 
         self.show_state_details(ui);
         self.show_state_buttons(ui);
@@ -184,7 +185,7 @@ impl EditorsContainer {
                     csm.set_transition_matrix_from(cme.get_combined_matrix());
                 }
 
-                Some(csm.get_state_data())
+                Some(csm.get_state_data(cme.get_adjacency_list()))
             }
             _ => None,
         }

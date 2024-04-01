@@ -383,6 +383,10 @@ impl ComplexMatrixEditor {
     pub fn get_labels(&self) -> &[(usize, usize)] {
         &self.labels
     }
+
+    pub fn get_adjacency_list(&self) -> &HashMap<usize, Vec<usize>> {
+        &self.adjacency_list
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
