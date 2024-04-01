@@ -57,9 +57,7 @@ impl ComplexStateManager {
     }
 
     pub(crate) fn make_transition_matrix_compatible(&mut self, matrix: &DMatrix<Complex<f64>>) {
-        println!("CHECKING TRANSITION MATRIX COMPATIBILITY");
         if self.state.len() != matrix.ncols() || self.probability_vector.len() != matrix.ncols() {
-            println!("TRANSITION MATRIX IS NOT COMPATIBLE - UPDATING");
             self.transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
             self.reset_state();
         }
@@ -92,5 +90,84 @@ impl ComplexStateManager {
                     .map(|row| row.iter().map(|x| x.norm()).sum()),
             )
         };
+    }
+
+    pub fn show(&mut self, ui: &mut egui::Ui, labels: &[(usize, usize)]) {
+        ui.heading("State");
+
+        ui.collapsing("Complex", |ui| {
+            self.display_complex_vector(ui, &self.state, labels);
+        });
+
+        let probability_vector = self.get_state_data();
+        ui.collapsing("As Probabilities", |ui| {
+            self.display_float_vector(ui, &probability_vector, labels)
+        });
+    }
+
+    fn display_complex_vector(
+        &self,
+        ui: &mut egui::Ui,
+        vector: &DVector<Complex<f64>>,
+        labels: &[(usize, usize)],
+    ) {
+        if labels.len() != vector.nrows() {
+            panic!("Matrix dimensions do not match labels")
+        }
+
+        egui::ScrollArea::horizontal().show(ui, |ui| {
+            egui::Grid::new("matrix_preview")
+                .striped(true)
+                .spacing([10.0, 10.0])
+                .show(ui, |ui| {
+                    // column headers
+                    for l in labels.iter() {
+                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                    }
+                    ui.end_row();
+
+                    // row headers and values
+                    for i in 0..labels.len() {
+                        if vector[i].l1_norm() == 0.0 {
+                            ui.label("-");
+                        } else {
+                            ui.label(format!("{:.02}+{:.02}i", vector[i].re, vector[i].im));
+                        }
+                    }
+                });
+        });
+    }
+
+    fn display_float_vector(
+        &self,
+        ui: &mut egui::Ui,
+        vector: &DVector<f64>,
+        labels: &[(usize, usize)],
+    ) {
+        if labels.len() != vector.nrows() {
+            panic!("Matrix dimensions do not match labels")
+        }
+
+        egui::ScrollArea::horizontal().show(ui, |ui| {
+            egui::Grid::new("matrix_preview")
+                .striped(true)
+                .spacing([10.0, 10.0])
+                .show(ui, |ui| {
+                    // column headers
+                    for l in labels.iter() {
+                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                    }
+                    ui.end_row();
+
+                    // row headers and values
+                    for i in 0..labels.len() {
+                        if vector[i] == 0.0 {
+                            ui.label("-");
+                        } else {
+                            ui.label(format!("{:.02}", vector[i]));
+                        }
+                    }
+                });
+        });
     }
 }

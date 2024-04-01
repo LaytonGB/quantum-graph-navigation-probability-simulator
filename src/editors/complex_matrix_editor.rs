@@ -319,23 +319,28 @@ impl ComplexMatrixEditor {
 
     fn show_preview_fields(&self, ui: &mut egui::Ui) {
         ui.collapsing("Scatter Matrix", |ui| {
-            self.display_matrix(ui, &self.scatter_matrix);
+            self.display_matrix(ui, &self.scatter_matrix, "scatter");
         });
         ui.collapsing("Propagation Matrix", |ui| {
-            self.display_matrix(ui, &self.propagation_matrix);
+            self.display_matrix(ui, &self.propagation_matrix, "propagation");
         });
         ui.collapsing("Combined Matrix", |ui| {
-            self.display_matrix(ui, &self.combined_matrix);
+            self.display_matrix(ui, &self.combined_matrix, "combined");
         });
     }
 
-    fn display_matrix(&self, ui: &mut egui::Ui, matrix: &DMatrix<Complex<f64>>) {
+    fn display_matrix(
+        &self,
+        ui: &mut egui::Ui,
+        matrix: &DMatrix<Complex<f64>>,
+        preview_id_prefix: &'static str,
+    ) {
         if self.labels.len() != matrix.nrows() || self.labels.len() != matrix.ncols() {
             panic!("Matrix dimensions do not match labels")
         }
 
         egui::ScrollArea::horizontal().show(ui, |ui| {
-            egui::Grid::new("scatter_matrix_preview")
+            egui::Grid::new(format!("{}_matrix_preview", preview_id_prefix))
                 .striped(true)
                 .spacing([10.0, 10.0])
                 .show(ui, |ui| {
@@ -373,6 +378,10 @@ impl ComplexMatrixEditor {
 
     pub fn get_combined_matrix(&self) -> &DMatrix<Complex<f64>> {
         &self.combined_matrix
+    }
+
+    pub fn get_labels(&self) -> &[(usize, usize)] {
+        &self.labels
     }
 }
 

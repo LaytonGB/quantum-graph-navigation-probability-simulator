@@ -112,6 +112,8 @@ impl EditorsContainer {
             }
         }
 
+        self.state_manager.show(ui, cme.get_labels());
+
         self.show_state_details(ui);
         self.show_state_buttons(ui);
     }

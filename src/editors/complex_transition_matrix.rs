@@ -16,10 +16,6 @@ impl std::fmt::Display for ComplexTransitionMatrix {
 
 impl ComplexTransitionMatrix {
     pub fn new(matrix: DMatrix<Complex<f64>>) -> Self {
-        println!(
-            "COMPLEX TRANSITION MATRIX CONSTRUCTED FROM SOME MATRIX: {}",
-            matrix
-        );
         let mut res = Self {
             matrix,
             max_error: 1e-10,
@@ -44,8 +40,6 @@ impl ComplexTransitionMatrix {
     }
 
     pub fn apply(&self, state: DVector<Complex<f64>>) -> DVector<Complex<f64>> {
-        println!("STATE: {}", state);
-        println!("TRANSITION: {}", self.matrix);
         &self.matrix * state
     }
 
