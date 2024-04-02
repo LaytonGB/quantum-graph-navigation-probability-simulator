@@ -19,7 +19,7 @@ impl ComplexStateManager {
         let transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
 
         let initial_state = transition_matrix.get_initial_state(Some(start_node_idx));
-        let mut res = Self {
+        let res = Self {
             state: initial_state,
             probability_vector: DVector::from_element(0, 0.0),
             is_state_updated: true,
@@ -31,8 +31,8 @@ impl ComplexStateManager {
         // TODO implement for reset button also
         // state starts on edge 0,0. this scatters the state to the
         // relevant edges without adding to steps.
-        res.step_forward();
-        res.step = 0;
+        // res.step_forward(); // NOTE complex state steps forwards on program open when enabled
+        // res.step = 0;
         res
     }
 
@@ -115,6 +115,9 @@ impl ComplexStateManager {
         labels: &[(usize, usize)],
         adjacency_list: &HashMap<usize, Vec<usize>>,
     ) {
+        self.transition_matrix.show(ui, labels);
+        ui.separator();
+
         ui.heading("State");
 
         ui.collapsing("Complex", |ui| {
@@ -148,12 +151,12 @@ impl ComplexStateManager {
                     }
                     ui.end_row();
 
-                    // row headers and values
+                    // values
                     for i in 0..labels.len() {
                         if vector[i].l1_norm() == 0.0 {
                             ui.label("-");
                         } else {
-                            ui.label(format!("{:.02}+{:.02}i", vector[i].re, vector[i].im));
+                            ui.label(format!("{:.03}+{:.03}i", vector[i].re, vector[i].im));
                         }
                     }
                 });
@@ -183,12 +186,12 @@ impl ComplexStateManager {
                     }
                     ui.end_row();
 
-                    // row headers and values
+                    // values
                     for i in 0..labels.len() {
                         if vector[i] == 0.0 {
                             ui.label("-");
                         } else {
-                            ui.label(format!("{:.02}", vector[i]));
+                            ui.label(format!("{:.03}", vector[i]));
                         }
                     }
                 });

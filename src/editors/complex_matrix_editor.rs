@@ -206,6 +206,7 @@ impl ComplexMatrixEditor {
         let mut from_nodes = self.adjacency_list.keys().copied().collect::<Vec<_>>();
         from_nodes.sort_unstable();
 
+        // copy data from text fields into scatter matrix
         for &i in from_nodes.iter() {
             let connections = self.adjacency_list.get(&i).unwrap();
             let connections_count = connections.len();

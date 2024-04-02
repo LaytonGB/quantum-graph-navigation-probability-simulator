@@ -1,10 +1,12 @@
-use nalgebra::{Complex, DMatrix, DVector, Dyn};
+use egui::Color32;
+use nalgebra::{Complex, DMatrix, DVector};
 
 use super::transition_matrix_correction_type::TransitionMatrixCorrectionType;
 
 #[derive(Debug, Clone)]
 pub struct ComplexTransitionMatrix {
     matrix: DMatrix<Complex<f64>>,
+    last_normalization_correction: TransitionMatrixCorrectionType,
     max_error: f64,
 }
 
@@ -18,10 +20,35 @@ impl ComplexTransitionMatrix {
     pub fn new(matrix: DMatrix<Complex<f64>>) -> Self {
         let mut res = Self {
             matrix,
+            last_normalization_correction: TransitionMatrixCorrectionType::None,
             max_error: 1e-10,
         };
         res.normalize_unitary();
         res
+    }
+
+    pub(crate) fn show(&self, ui: &mut egui::Ui, labels: &[(usize, usize)]) {
+        ui.heading("Transition Matrix Data");
+
+        ui.collapsing("Unitary Normalized Transition Matrix", |ui| {
+            self.display_matrix(ui, labels);
+        });
+
+        let error_color = Color32::from_rgb(255, 50, 50);
+        match &self.last_normalization_correction {
+            TransitionMatrixCorrectionType::None => {
+                ui.label("No error correction applied.");
+            }
+            TransitionMatrixCorrectionType::Scalar(x) => {
+                ui.colored_label(error_color, format!("Scalar correction applied: {:.03}", x));
+            }
+            TransitionMatrixCorrectionType::NonScalar(correction_vector) => {
+                ui.collapsing(
+                    egui::RichText::new("Non scalar correction applied").color(error_color),
+                    |ui| Self::display_vector(ui, correction_vector, labels),
+                );
+            }
+        }
     }
 
     pub fn get_complex_matrix(&self) -> &DMatrix<Complex<f64>> {
@@ -43,10 +70,11 @@ impl ComplexTransitionMatrix {
         &self.matrix * state
     }
 
-    pub fn normalize_unitary(&mut self) -> TransitionMatrixCorrectionType {
+    pub fn normalize_unitary(&mut self) -> &TransitionMatrixCorrectionType {
         let n = self.matrix.nrows();
         if n == 0 {
-            return TransitionMatrixCorrectionType::None;
+            self.last_normalization_correction = TransitionMatrixCorrectionType::None;
+            return &self.last_normalization_correction;
         }
 
         // correct values and store the amount of correction
@@ -70,21 +98,82 @@ impl ComplexTransitionMatrix {
         let require_non_scalar_correction = { correction_difference > self.max_error };
 
         if require_non_scalar_correction {
-            Self::make_svd_unitary(&mut svd);
             self.matrix = svd.recompose().expect("SVD recomposition failed");
-            TransitionMatrixCorrectionType::NonScalar(correction_values)
+            self.last_normalization_correction =
+                TransitionMatrixCorrectionType::NonScalar(correction_values);
         } else if largest_abs_correction > self.max_error {
-            Self::make_svd_unitary(&mut svd);
             self.matrix = svd.recompose().expect("SVD recomposition failed");
-            TransitionMatrixCorrectionType::Scalar(largest_abs_correction)
+            self.last_normalization_correction =
+                TransitionMatrixCorrectionType::Scalar(largest_abs_correction);
         } else {
-            TransitionMatrixCorrectionType::None
+            self.last_normalization_correction = TransitionMatrixCorrectionType::None;
         }
+
+        &self.last_normalization_correction
     }
 
-    fn make_svd_unitary(svd: &mut nalgebra::SVD<Complex<f64>, Dyn, Dyn>) {
-        svd.singular_values.iter_mut().for_each(|x| {
-            *x = 1.0;
+    fn display_matrix(&self, ui: &mut egui::Ui, labels: &[(usize, usize)]) {
+        if labels.len() != self.matrix.nrows() || labels.len() != self.matrix.ncols() {
+            panic!("Matrix dimensions do not match labels")
+        }
+
+        egui::ScrollArea::horizontal().show(ui, |ui| {
+            egui::Grid::new("normalized_transition_matrix_preview")
+                .striped(true)
+                .spacing([10.0, 10.0])
+                .show(ui, |ui| {
+                    // column headers
+                    ui.label(""); // empty label to pad for row headers
+                    for l in labels.iter() {
+                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                    }
+                    ui.end_row();
+
+                    // row headers and values
+                    for (i, l) in labels.iter().enumerate() {
+                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                        for j in 0..labels.len() {
+                            if self.matrix[(i, j)].l1_norm() == 0.0 {
+                                ui.label("-");
+                            } else {
+                                ui.label(format!(
+                                    "{:.03}+{:.03}i",
+                                    self.matrix[(i, j)].re,
+                                    self.matrix[(i, j)].im
+                                ));
+                            }
+                        }
+                        ui.end_row();
+                    }
+                });
+        });
+    }
+
+    fn display_vector(ui: &mut egui::Ui, vector: &DVector<f64>, labels: &[(usize, usize)]) {
+        if labels.len() != vector.nrows() {
+            panic!("Matrix dimensions do not match labels")
+        }
+
+        egui::ScrollArea::horizontal().show(ui, |ui| {
+            egui::Grid::new("matrix_preview")
+                .striped(true)
+                .spacing([10.0, 10.0])
+                .show(ui, |ui| {
+                    // column headers
+                    for l in labels.iter() {
+                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                    }
+                    ui.end_row();
+
+                    // values
+                    for i in 0..labels.len() {
+                        if vector[i] == 0.0 {
+                            ui.label("-");
+                        } else {
+                            ui.label(format!("{:.03}", vector[i]));
+                        }
+                    }
+                });
         });
     }
 }
@@ -108,7 +197,7 @@ mod tests {
         ) / Complex::from(2.0_f64.sqrt());
         let mut unitary_transition_matrix = ComplexTransitionMatrix::new(unitary_matrix);
         let correction_type = unitary_transition_matrix.normalize_unitary();
-        assert_eq!(correction_type, TransitionMatrixCorrectionType::None);
+        assert_eq!(correction_type, &TransitionMatrixCorrectionType::None);
 
         let scalar_unitary_matrix = DMatrix::from_row_slice(
             2,
@@ -124,7 +213,7 @@ mod tests {
         let correction_type = scalar_transition_matrix.normalize_unitary();
         assert_eq!(
             correction_type,
-            TransitionMatrixCorrectionType::Scalar(2.0_f64.sqrt() - 1.0)
+            &TransitionMatrixCorrectionType::Scalar(2.0_f64.sqrt() - 1.0)
         );
 
         let non_scalar_unitary_matrix = DMatrix::from_row_slice(
