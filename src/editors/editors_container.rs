@@ -1,5 +1,5 @@
 use anyhow::Result;
-use nalgebra::DVector;
+use nalgebra::{Complex, DVector};
 
 use crate::{
     editors::{
@@ -176,7 +176,13 @@ impl EditorsContainer {
     pub(crate) fn get_state_data(&mut self) -> Option<DVector<f64>> {
         match &mut self.state_manager {
             StateManager::Classical(csm) => Some(csm.get_state_data()),
-            StateManager::Complex(ref mut csm) => {
+            _ => None,
+        }
+    }
+
+    pub(crate) fn get_complex_state_data(&mut self) -> Option<DVector<Complex<f64>>> {
+        match &mut self.state_manager {
+            StateManager::Complex(csm) => {
                 let MatrixEditor::Complex(cme) = &mut self.matrix_editor else {
                     panic!("State manager is complex but matrix editor is not");
                 };
