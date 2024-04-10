@@ -76,7 +76,7 @@ impl ComplexMatrixEditor {
             .map(|(k, v)| v.contains(k))
             .collect::<Vec<_>>();
 
-        let propagation_method = PropagationMethod::VARIANTS[0];
+        let propagation_method = PropagationMethod::ExampleMatrix;
         let scatter_matrix = Self::new_scatter_matrix(half_edge_count);
         let propagation_matrix = Self::new_propagation_matrix(propagation_method, &labels);
 
