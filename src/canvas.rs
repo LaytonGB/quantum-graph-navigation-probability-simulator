@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use egui::{Align2, Color32, FontId, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points, Text};
-use nalgebra::{Complex, DVector};
+use nalgebra::DVector;
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::canvas_actions::CanvasActions;
@@ -39,7 +39,6 @@ pub struct Canvas {
     pub action_data: CanvasActions,
 
     state_data: Option<DVector<f64>>,
-    complex_state_data: Option<DVector<Complex<f64>>>,
 }
 
 impl Canvas {
@@ -477,7 +476,7 @@ impl Canvas {
     ) {
         self.draw_lines(plot_ui, options);
         self.draw_nodes(plot_ui, options);
-        self.draw_state_data(plot_ui, options);
+        self.draw_state_data(plot_ui);
 
         self.draw_previews(plot_ui, pointer_coords);
     }
@@ -646,45 +645,21 @@ impl Canvas {
         self.state_data = state_data;
     }
 
-    pub(crate) fn set_complex_state_data(&mut self, state_data: Option<DVector<Complex<f64>>>) {
-        self.complex_state_data = state_data;
-    }
-
     /// Uses node position data combined with state probabilities to draw state probabilities
     /// onto the canvas next to each relevant node.
-    fn draw_state_data(&self, plot_ui: &mut PlotUi, options: &Options) {
-        match options.mode {
-            Mode::Classical => {
-                let Some(state_data) = self.state_data.as_ref() else {
-                    return;
-                };
+    fn draw_state_data(&self, plot_ui: &mut PlotUi) {
+        let Some(state_data) = self.state_data.as_ref() else {
+            return;
+        };
 
-                for (node, probability) in self.nodes.iter().zip(state_data.iter()) {
-                    let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
-                    let adjusted_node = plot_ui.plot_from_screen(global_node + [5.0, 5.0].into());
-                    plot_ui.text(
-                        Text::new(adjusted_node.into(), format!("{:.02}", probability))
-                            .color(Color32::WHITE)
-                            .anchor(Align2::LEFT_TOP),
-                    );
-                }
-            }
-            Mode::Quantum => {
-                let Some(complex_state_data) = self.complex_state_data.as_ref() else {
-                    return;
-                };
-
-                for (node, probability) in self.nodes.iter().zip(complex_state_data.iter()) {
-                    let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
-                    let adjusted_node = plot_ui.plot_from_screen(global_node + [5.0, 5.0].into());
-                    plot_ui.text(
-                        Text::new(adjusted_node.into(), format!("{:.02}", probability))
-                            .color(Color32::WHITE)
-                            .anchor(Align2::LEFT_TOP),
-                    );
-                }
-            }
-            _ => (),
+        for (node, probability) in self.nodes.iter().zip(state_data.iter()) {
+            let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
+            let adjusted_node = plot_ui.plot_from_screen(global_node + [5.0, 5.0].into());
+            plot_ui.text(
+                Text::new(adjusted_node.into(), format!("{:.02}", probability))
+                    .color(Color32::WHITE)
+                    .anchor(Align2::LEFT_TOP),
+            );
         }
     }
 }

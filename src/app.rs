@@ -160,7 +160,7 @@ impl EframeApp {
                             );
 
                             let complex_state_data = self.editors.get_complex_state_data();
-                            self.canvas.set_complex_state_data(complex_state_data);
+                            self.canvas.set_state_data(complex_state_data);
                         }
                         _ => {}
                     }

@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use nalgebra::{Complex, DMatrix, DVector};
+use nalgebra::{Complex, DMatrix, DVector, Normed};
 
 use super::complex_transition_matrix::ComplexTransitionMatrix;
 
 #[derive(Debug, Clone)]
 pub struct ComplexStateManager {
     state: DVector<Complex<f64>>,
-    probability_vector: DVector<Complex<f64>>,
+    probability_vector: DVector<f64>,
     is_state_updated: bool,
     step: usize,
     transition_matrix: ComplexTransitionMatrix,
@@ -21,7 +21,7 @@ impl ComplexStateManager {
         let initial_state = transition_matrix.get_initial_state(Some(start_node_idx));
         let res = Self {
             state: initial_state,
-            probability_vector: DVector::from_element(0, Complex::new(0.0, 0.0)),
+            probability_vector: DVector::from_element(0, 0.0),
             is_state_updated: true,
             step: 0,
             transition_matrix,
@@ -45,7 +45,7 @@ impl ComplexStateManager {
     pub(crate) fn get_state_data(
         &mut self,
         adjacency_list: &HashMap<usize, Vec<usize>>,
-    ) -> DVector<Complex<f64>> {
+    ) -> DVector<f64> {
         if self.is_state_updated {
             self.update_probability_vector(adjacency_list);
             self.is_state_updated = false;
@@ -88,18 +88,18 @@ impl ComplexStateManager {
 
     fn update_probability_vector(&mut self, adjacency_list: &HashMap<usize, Vec<usize>>) {
         self.probability_vector = if self.state.nrows() == 0 {
-            DVector::from_element(0, Complex::new(0.0, 0.0))
+            DVector::from_element(0, 0.0)
         } else {
             // collapse rows
             let temp = DVector::from_iterator(
                 self.state.nrows(),
                 self.state
                     .row_iter()
-                    .map(|row| row.iter().sum::<Complex<f64>>()),
+                    .map(|row| row.iter().map(|x| x.norm_squared()).sum::<f64>()),
             );
 
             // collapse adjacent columns
-            let mut res = DVector::from_element(adjacency_list.len(), Complex::new(0.0, 0.0));
+            let mut res = DVector::from_element(adjacency_list.len(), 0.0);
             let mut past_edges = 0;
             for i in 0..adjacency_list.len() {
                 let edge_count = adjacency_list.get(&i).unwrap().len();
@@ -169,7 +169,7 @@ impl ComplexStateManager {
                         if vector[i].l1_norm() == 0.0 {
                             ui.label("-");
                         } else {
-                            ui.label(format!("{:.03}+{:.03}i", vector[i].re, vector[i].im));
+                            ui.label(format!("{:.03}", vector[i]));
                         }
                     }
                 });
@@ -179,7 +179,7 @@ impl ComplexStateManager {
     fn display_node_vector(
         &self,
         ui: &mut egui::Ui,
-        vector: &DVector<Complex<f64>>,
+        vector: &DVector<f64>,
         labels: &[(usize, usize)],
     ) {
         let mut labels = labels.iter().map(|x| x.0).collect::<Vec<_>>();
@@ -201,7 +201,7 @@ impl ComplexStateManager {
 
                     // values
                     for i in 0..labels.len() {
-                        if vector[i] == Complex::new(0.0, 0.0) {
+                        if vector[i] < 0.001 {
                             ui.label("-");
                         } else {
                             ui.label(format!("{:.03}", vector[i]));
@@ -212,10 +212,10 @@ impl ComplexStateManager {
     }
 
     fn show_debug_info(&self, ui: &mut egui::Ui) {
-        let probability_sum = self.probability_vector.iter().sum::<Complex<f64>>();
+        let probability_sum = self.probability_vector.iter().sum::<f64>();
         ui.label(format!(
-            "Probabilities Sum: {:.03}+{:.03}i",
-            probability_sum.re, probability_sum.im
+            "Probabilities Sum: {:.03}",
+            probability_sum
         ));
     }
 }
