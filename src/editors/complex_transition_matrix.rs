@@ -78,15 +78,9 @@ impl ComplexTransitionMatrix {
         }
 
         // correct values and store the amount of correction
-        let mut correction_values = DVector::from_element(n, 0.0);
         let mut svd = self.matrix.clone().svd(true, true);
-        svd.singular_values
-            .iter_mut()
-            .enumerate()
-            .for_each(|(i, x)| {
-                correction_values[i] = 1.0 - *x;
-                *x = 1.0;
-            });
+        let correction_values = svd.singular_values.clone();
+        svd.singular_values.iter_mut().for_each(|x| *x = 1.0);
 
         let (min_correction, max_correction) = correction_values
             .iter()

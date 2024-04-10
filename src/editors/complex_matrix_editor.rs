@@ -78,7 +78,7 @@ impl ComplexMatrixEditor {
 
         let propagation_method = PropagationMethod::VARIANTS[0];
         let scatter_matrix = Self::new_scatter_matrix(half_edge_count);
-        let propagation_matrix = Self::new_propagation_matrix(propagation_method, half_edge_count);
+        let propagation_matrix = Self::new_propagation_matrix(propagation_method, &labels);
 
         let text_fields = Self::new_text_fields(&adjacency_list);
 
@@ -135,7 +135,7 @@ impl ComplexMatrixEditor {
                         self.propagation_method = *method;
                         self.propagation_matrix = Self::new_propagation_matrix(
                             self.propagation_method,
-                            self.labels.len(),
+                            &self.labels,
                         );
                         self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
                     }
@@ -260,7 +260,7 @@ impl ComplexMatrixEditor {
         self.previous_text_fields = self.text_fields.clone();
         self.scatter_matrix = Self::new_scatter_matrix(self.labels.len());
         self.propagation_matrix =
-            Self::new_propagation_matrix(self.propagation_method, self.labels.len());
+            Self::new_propagation_matrix(self.propagation_method, &self.labels);
         self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
     }
 
@@ -299,16 +299,18 @@ impl ComplexMatrixEditor {
 
     fn new_propagation_matrix(
         propagation_method: PropagationMethod,
-        half_edge_count: usize,
+        labels: &Vec<(usize, usize)>,
     ) -> DMatrix<Complex<f64>> {
+        let n = labels.len();
         match propagation_method {
+            PropagationMethod::Blank => DMatrix::from_element(n, n, Complex::new(0.0, 0.0)),
             PropagationMethod::ExampleMatrix => {
-                DMatrix::from_fn(half_edge_count, half_edge_count, |i, j| {
+                DMatrix::from_fn(n, n, |i, j| {
                     // where the coordinates point to some node that has 2 edges, eg 0->0, 0->1
                     // being on some edge 0->1 would then place the particle on edge 1->0
                     // 0, 1
                     // 1, 0
-                    if i == j + 1 || j == i + 1 {
+                    if labels[i].0 == labels[j].1 && labels[i].1 == labels[j].0 {
                         Complex::new(1.0, 0.0)
                     } else {
                         Complex::new(0.0, 0.0)
