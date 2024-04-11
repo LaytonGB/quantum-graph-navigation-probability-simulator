@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use nalgebra::{Complex, DMatrix, DVector, Normed};
 
@@ -8,10 +8,12 @@ use super::complex_transition_matrix::ComplexTransitionMatrix;
 pub struct ComplexStateManager {
     state: DVector<Complex<f64>>,
     probability_vector: DVector<f64>,
+    labels: Vec<(usize, usize)>,
     is_state_updated: bool,
     step: usize,
     transition_matrix: ComplexTransitionMatrix,
     start_node_idx: Option<usize>,
+    target_node_indexes: HashSet<usize>,
 }
 
 impl ComplexStateManager {
@@ -19,6 +21,7 @@ impl ComplexStateManager {
         matrix: &DMatrix<Complex<f64>>,
         labels: &[(usize, usize)],
         start_node_idx: usize,
+        target_node_indexes: HashSet<usize>,
     ) -> Self {
         let transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
 
@@ -26,24 +29,41 @@ impl ComplexStateManager {
         let res = Self {
             state: initial_state,
             probability_vector: DVector::from_element(0, 0.0),
+            labels: labels.to_vec(),
             is_state_updated: true,
             step: 0,
             transition_matrix,
-            start_node_idx: None,
+            start_node_idx: Some(start_node_idx),
+            target_node_indexes,
         };
 
-        // TODO implement for reset button also
-        // state starts on edge 0,0. this scatters the state to the
-        // relevant edges without adding to steps.
-        // res.step_forward(); // NOTE complex state steps forwards on program open when enabled
-        // res.step = 0;
         res
     }
 
     pub fn step_forward(&mut self) {
         self.step += 1;
         self.state = self.transition_matrix.apply(self.state.clone());
+        self.apply_target_nodes();
         self.is_state_updated = true;
+    }
+
+    fn apply_target_nodes(&mut self) {
+        for ((i, _), v) in self.labels.iter().zip(self.state.iter_mut()) {
+            if self.target_node_indexes.contains(i) {
+                *v = Complex::new(0.0, 0.0);
+            }
+        }
+
+        let new_total = self
+            .state
+            .iter()
+            .map(|x| x.norm_squared())
+            .sum::<f64>()
+            .sqrt();
+
+        for v in self.state.iter_mut() {
+            *v /= new_total;
+        }
     }
 
     pub(crate) fn get_state_data(
@@ -81,6 +101,10 @@ impl ComplexStateManager {
 
     pub(crate) fn set_start_node_idx(&mut self, start_node_idx: usize) {
         self.start_node_idx = Some(start_node_idx);
+    }
+
+    pub(crate) fn set_target_node_indexes(&mut self, target_node_indexes: HashSet<usize>) {
+        self.target_node_indexes = target_node_indexes;
     }
 
     pub(crate) fn set_transition_matrix_from(

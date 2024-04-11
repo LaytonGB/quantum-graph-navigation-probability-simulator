@@ -134,13 +134,13 @@ impl EframeApp {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     self.options.show_mode_buttons(ui);
 
-                    ui.separator();
-                    self.options.show_specific_options(ui);
-
                     if self.options.mode != Mode::Edit {
                         ui.separator();
                         self.options.show_generic_options(ui);
                     }
+
+                    ui.separator();
+                    self.options.show_specific_options(ui);
 
                     match self.options.mode {
                         Mode::Classical => {

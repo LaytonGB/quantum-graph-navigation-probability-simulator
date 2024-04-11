@@ -109,6 +109,7 @@ impl EditorsContainer {
                     cme.get_combined_matrix(),
                     cme.get_labels(),
                     options.generic.start_node_idx,
+                    options.specific.quantum.target_node_indexes.clone(),
                 ))
             }
         }
@@ -241,6 +242,7 @@ impl EditorsContainer {
             }
             (MatrixEditor::Complex(me), StateManager::Complex(csm)) => {
                 csm.set_start_node_idx(options.generic.start_node_idx);
+                csm.set_target_node_indexes(options.specific.quantum.target_node_indexes.clone());
                 csm.make_transition_matrix_compatible(me.get_combined_matrix());
             }
             _ => (),

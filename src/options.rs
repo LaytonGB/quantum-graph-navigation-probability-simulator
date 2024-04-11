@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use egui::{Color32, Ui};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
@@ -28,9 +30,9 @@ impl Options {
     pub fn show_specific_options(&mut self, ui: &mut Ui) {
         ui.heading(self.mode.options_name());
         match self.mode {
-            Mode::Edit => self.specific.edit.draw_snap_options(ui),
-            Mode::Classical => {}
-            Mode::Quantum => {}
+            Mode::Edit => self.specific.edit.show_options(ui),
+            Mode::Classical => self.specific.classical.show_options(ui),
+            Mode::Quantum => self.specific.quantum.show_options(ui),
         }
     }
 
@@ -171,8 +173,37 @@ impl ModeOptionsShow for EditOptions {
 #[derive(Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
 pub struct ClassicalOptions {}
 
+impl ModeOptionsShow for ClassicalOptions {
+    fn show_options(&mut self, _ui: &mut Ui) {}
+}
+
 #[derive(Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
-pub struct QuantumOptions {}
+pub struct QuantumOptions {
+    target_node_text: String,
+    pub target_node_indexes: HashSet<usize>,
+}
+
+impl QuantumOptions {
+    fn update_target_node_indexes(&mut self) {
+        self.target_node_indexes = self
+            .target_node_text
+            .split_whitespace()
+            .filter_map(|x| x.parse::<usize>().ok())
+            .collect();
+    }
+}
+
+impl ModeOptionsShow for QuantumOptions {
+    fn show_options(&mut self, ui: &mut Ui) {
+        ui.label("Target Node Indexes (space separated)");
+        if ui
+            .text_edit_singleline(&mut self.target_node_text)
+            .lost_focus()
+        {
+            self.update_target_node_indexes();
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Debug)]
 pub struct GenericComputationOptions {
