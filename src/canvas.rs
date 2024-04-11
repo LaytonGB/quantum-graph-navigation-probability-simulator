@@ -203,7 +203,7 @@ impl Canvas {
                         return Color32::from_rgb(0, 255, 0);
                     }
 
-                    let prob = (prob - min) / (max - min);
+                    // let prob = (prob - min) / (max - min);
                     // hue starts at 0 ends at 240
                     // converts to rgb here
                     let hue = 240.0 * (1.0 - prob);
