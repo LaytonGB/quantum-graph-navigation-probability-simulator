@@ -203,6 +203,7 @@ impl Canvas {
                         return Color32::from_rgb(0, 255, 0);
                     }
 
+                    // TODO redo coloring gradient
                     // let prob = (prob - min) / (max - min);
                     // hue starts at 0 ends at 240
                     // converts to rgb here
