@@ -691,7 +691,6 @@ impl Canvas {
 
     pub(crate) fn set_state_data(&mut self, state_data: Option<DVector<f64>>) {
         self.state_data = state_data;
-        dbg!("STATE DATA SET", &self.state_data);
     }
 
     /// Uses node position data combined with state probabilities to draw state probabilities
