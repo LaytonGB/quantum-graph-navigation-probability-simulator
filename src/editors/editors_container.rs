@@ -176,12 +176,6 @@ impl EditorsContainer {
     pub(crate) fn get_state_data(&mut self) -> Option<DVector<f64>> {
         match &mut self.state_manager {
             StateManager::Classical(csm) => Some(csm.get_state_data()),
-            _ => None,
-        }
-    }
-
-    pub(crate) fn get_complex_state_data(&mut self) -> Option<DVector<f64>> {
-        match &mut self.state_manager {
             StateManager::Complex(csm) => {
                 let MatrixEditor::Complex(cme) = &mut self.matrix_editor else {
                     panic!("State manager is complex but matrix editor is not");

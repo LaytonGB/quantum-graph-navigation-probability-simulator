@@ -184,14 +184,61 @@ impl Canvas {
     }
 
     pub fn draw_nodes(&self, plot_ui: &mut PlotUi, options: &Options) {
-        plot_ui.points(self.nodes(options));
+        // plot nodes
+        match (options.mode, self.state_data.as_ref()) {
+            (Mode::Edit, _) | (_, None) => plot_ui.points(self.nodes(options)),
+            (_, Some(state)) => {
+                println!("PLOTTING");
+
+                // plot nodes with color based on state data
+                let coords = self.nodes_coords();
+                let (min, max) = state
+                    .iter()
+                    .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), prob| {
+                        (min.min(*prob), max.max(*prob))
+                    });
+
+                let color = |prob: f64| {
+                    if min == max {
+                        return Color32::from_rgb(0, 255, 0);
+                    }
+
+                    let prob = (prob - min) / (max - min);
+                    // hue starts at 0 ends at 240
+                    // converts to rgb here
+                    let hue = 240.0 * (1.0 - prob);
+                    let (r, g, b) = if hue <= 60.0 {
+                        (255.0, if hue != 0.0 { 255.0 / hue } else { 0.0 }, 0.0)
+                    } else if hue <= 120.0 {
+                        (255.0 - (hue - 60.0) * 255.0 / 60.0, 255.0, 0.0)
+                    } else if hue <= 180.0 {
+                        (0.0, 255.0, (hue - 120.0) * 255.0 / 60.0)
+                    } else {
+                        (0.0, 255.0 - (hue - 180.0) * 255.0 / 60.0, 255.0)
+                    };
+                    Color32::from_rgb((r) as u8, (g) as u8, (b) as u8)
+                };
+
+                for (i, coord) in coords.iter().enumerate() {
+                    plot_ui.points(
+                        Points::new(vec![(*coord)])
+                            .filled(true)
+                            .radius(5.0)
+                            .color(color(state[i])),
+                    )
+                }
+            }
+        }
 
         // TODO consider performance
+        // set text style
         let mut style = (*plot_ui.ctx().style()).clone();
         style
             .text_styles
             .insert(egui::TextStyle::Small, FontId::proportional(12.0));
         plot_ui.ctx().set_style(style);
+
+        // draw node labels
         for (i, node) in self.nodes.iter().enumerate() {
             let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
             let adjusted_node = plot_ui.plot_from_screen(global_node + [-5.0, -5.0].into());
@@ -643,6 +690,7 @@ impl Canvas {
 
     pub(crate) fn set_state_data(&mut self, state_data: Option<DVector<f64>>) {
         self.state_data = state_data;
+        dbg!("STATE DATA SET", &self.state_data);
     }
 
     /// Uses node position data combined with state probabilities to draw state probabilities

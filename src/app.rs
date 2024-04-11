@@ -159,7 +159,7 @@ impl EframeApp {
                                 &self.canvas.get_lines_as_idx_tuples(),
                             );
 
-                            let complex_state_data = self.editors.get_complex_state_data();
+                            let complex_state_data = self.editors.get_state_data();
                             self.canvas.set_state_data(complex_state_data);
                         }
                         _ => {}

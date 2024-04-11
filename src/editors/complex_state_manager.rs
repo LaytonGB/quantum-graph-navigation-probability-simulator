@@ -87,7 +87,7 @@ impl ComplexStateManager {
     }
 
     fn update_probability_vector(&mut self, adjacency_list: &HashMap<usize, Vec<usize>>) {
-        self.probability_vector = if self.state.nrows() == 0 {
+        self.probability_vector = if self.state.len() == 0 {
             DVector::from_element(0, 0.0)
         } else {
             // collapse rows
@@ -213,9 +213,6 @@ impl ComplexStateManager {
 
     fn show_debug_info(&self, ui: &mut egui::Ui) {
         let probability_sum = self.probability_vector.iter().sum::<f64>();
-        ui.label(format!(
-            "Probabilities Sum: {:.03}",
-            probability_sum
-        ));
+        ui.label(format!("Probabilities Sum: {:.03}", probability_sum));
     }
 }
