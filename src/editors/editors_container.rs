@@ -107,6 +107,7 @@ impl EditorsContainer {
             _ => {
                 self.state_manager = StateManager::Complex(ComplexStateManager::new(
                     cme.get_combined_matrix(),
+                    cme.get_labels(),
                     options.generic.start_node_idx,
                 ))
             }
@@ -200,7 +201,13 @@ impl EditorsContainer {
                     panic!("State manager is classical but matrix editor is not");
                 }
             }
-            StateManager::Complex(csm) => csm.reset_state(),
+            StateManager::Complex(csm) => {
+                if let MatrixEditor::Complex(cme) = &self.matrix_editor {
+                    csm.reset_state(cme.get_labels());
+                } else {
+                    csm.reset_state(&vec![]);
+                }
+            }
             StateManager::None => (),
         }
     }

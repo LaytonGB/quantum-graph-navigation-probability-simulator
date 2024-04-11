@@ -15,10 +15,14 @@ pub struct ComplexStateManager {
 }
 
 impl ComplexStateManager {
-    pub fn new(matrix: &DMatrix<Complex<f64>>, start_node_idx: usize) -> Self {
+    pub fn new(
+        matrix: &DMatrix<Complex<f64>>,
+        labels: &[(usize, usize)],
+        start_node_idx: usize,
+    ) -> Self {
         let transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
 
-        let initial_state = transition_matrix.get_initial_state(Some(start_node_idx));
+        let initial_state = transition_matrix.get_initial_state(Some(start_node_idx), labels);
         let res = Self {
             state: initial_state,
             probability_vector: DVector::from_element(0, 0.0),
@@ -53,11 +57,11 @@ impl ComplexStateManager {
         self.probability_vector.clone()
     }
 
-    pub(crate) fn reset_state(&mut self) {
+    pub(crate) fn reset_state(&mut self, labels: &[(usize, usize)]) {
         self.step = 0;
         self.state = self
             .transition_matrix
-            .get_initial_state(self.start_node_idx);
+            .get_initial_state(self.start_node_idx, labels);
         self.is_state_updated = true;
     }
 
@@ -67,7 +71,7 @@ impl ComplexStateManager {
         /*  || self.probability_vector.len() != matrix.ncols() */
         {
             self.transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
-            self.reset_state();
+            self.reset_state(&vec![]);
         }
     }
 

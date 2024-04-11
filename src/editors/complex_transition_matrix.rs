@@ -64,14 +64,20 @@ impl ComplexTransitionMatrix {
         &self.matrix
     }
 
-    // TODO make start node usable
-    pub fn get_initial_state(&self, _start_node_idx: Option<usize>) -> DVector<Complex<f64>> {
+    pub fn get_initial_state(
+        &self,
+        start_node_idx: Option<usize>,
+        labels: &[(usize, usize)],
+    ) -> DVector<Complex<f64>> {
         let mut res = DVector::from_element(self.matrix.ncols(), Complex::new(0.0, 0.0));
         if res.len() == 0 {
             return res;
         }
-        let start_node_idx = 0;
-        res[start_node_idx] = Complex::new(1.0, 0.0);
+        let start_node_idx = start_node_idx.unwrap_or(0);
+        res[labels
+            .iter()
+            .position(|(x, _)| *x == start_node_idx)
+            .unwrap_or(0)] = Complex::new(1.0, 0.0);
         res
     }
 
