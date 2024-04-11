@@ -115,7 +115,7 @@ impl EditorsContainer {
         }
 
         self.state_manager
-            .show(ui, options, cme.get_labels(), cme.get_adjacency_list());
+            .show(ui, options, cme.get_adjacency_list());
 
         self.show_state_details(ui);
         self.show_state_buttons(ui);

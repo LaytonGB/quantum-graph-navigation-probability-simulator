@@ -18,12 +18,11 @@ impl StateManager {
         &mut self,
         ui: &mut egui::Ui,
         options: &Options,
-        labels: &[(usize, usize)],
         adjacency_list: &HashMap<usize, Vec<usize>>,
     ) {
         match (self, options.mode) {
             (Self::Complex(complex_state_manager), Mode::Quantum) => {
-                complex_state_manager.show(ui, labels, adjacency_list)
+                complex_state_manager.show(ui, adjacency_list)
             }
             _ => {}
         }

@@ -14,6 +14,8 @@ pub struct ComplexStateManager {
     transition_matrix: ComplexTransitionMatrix,
     start_node_idx: Option<usize>,
     target_node_indexes: HashSet<usize>,
+    target_node_accumulation: HashMap<usize, f64>,
+    amount_removed_by_accumulation: f64,
 }
 
 impl ComplexStateManager {
@@ -26,7 +28,10 @@ impl ComplexStateManager {
         let transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
 
         let initial_state = transition_matrix.get_initial_state(Some(start_node_idx), labels);
-        let res = Self {
+
+        let target_node_accumulation = target_node_indexes.iter().map(|x| (*x, 0.0)).collect();
+
+        Self {
             state: initial_state,
             probability_vector: DVector::from_element(0, 0.0),
             labels: labels.to_vec(),
@@ -35,9 +40,9 @@ impl ComplexStateManager {
             transition_matrix,
             start_node_idx: Some(start_node_idx),
             target_node_indexes,
-        };
-
-        res
+            target_node_accumulation,
+            amount_removed_by_accumulation: 0.0,
+        }
     }
 
     pub fn step_forward(&mut self) {
@@ -48,19 +53,27 @@ impl ComplexStateManager {
     }
 
     fn apply_target_nodes(&mut self) {
+        let mut no_change = true;
         for ((i, _), v) in self.labels.iter().zip(self.state.iter_mut()) {
             if self.target_node_indexes.contains(i) {
+                *self.target_node_accumulation.entry(*i).or_insert(0.0) +=
+                    (1.0 - self.amount_removed_by_accumulation) * v.norm_squared();
                 *v = Complex::new(0.0, 0.0);
+
+                no_change = false;
             }
         }
 
-        let new_total = self
-            .state
-            .iter()
-            .map(|x| x.norm_squared())
-            .sum::<f64>()
-            .sqrt();
+        if no_change {
+            return;
+        }
 
+        let mut new_total = self.state.iter().map(|x| x.norm_squared()).sum::<f64>();
+
+        self.amount_removed_by_accumulation +=
+            (1.0 - self.amount_removed_by_accumulation) * (1.0 - new_total);
+
+        new_total = new_total.sqrt();
         for v in self.state.iter_mut() {
             *v /= new_total;
         }
@@ -77,11 +90,24 @@ impl ComplexStateManager {
         self.probability_vector.clone()
     }
 
+    pub(crate) fn get_target_accumulation(&self) -> DVector<f64> {
+        let mut labels = self.labels.iter().map(|x| x.0).collect::<Vec<_>>();
+        labels.dedup();
+        let mut res = DVector::from_element(labels.len(), 0.0);
+        for (i, v) in self.target_node_accumulation.iter() {
+            res[*i] = *v;
+        }
+        res
+    }
+
     pub(crate) fn reset_state(&mut self, labels: &[(usize, usize)]) {
         self.step = 0;
         self.state = self
             .transition_matrix
             .get_initial_state(self.start_node_idx, labels);
+        self.target_node_accumulation =
+            self.target_node_indexes.iter().map(|x| (*x, 0.0)).collect();
+        self.amount_removed_by_accumulation = 0.0;
         self.is_state_updated = true;
     }
 
@@ -140,24 +166,29 @@ impl ComplexStateManager {
         };
     }
 
-    pub fn show(
-        &mut self,
-        ui: &mut egui::Ui,
-        labels: &[(usize, usize)],
-        adjacency_list: &HashMap<usize, Vec<usize>>,
-    ) {
-        self.transition_matrix.show(ui, labels);
+    pub fn show(&mut self, ui: &mut egui::Ui, adjacency_list: &HashMap<usize, Vec<usize>>) {
+        self.transition_matrix.show(ui, &self.labels);
 
         ui.separator();
 
         ui.heading("State");
         ui.collapsing("Complex", |ui| {
-            self.display_half_edge_vector(ui, &self.state, labels);
+            self.display_half_edge_vector(ui, &self.state);
         });
         let probability_vector = self.get_state_data(adjacency_list);
         ui.collapsing("As Probabilities", |ui| {
-            self.display_node_vector(ui, &probability_vector, labels)
+            self.display_node_vector(ui, &probability_vector);
         });
+        if !self.target_node_indexes.is_empty() {
+            let target_accumulation = self.get_target_accumulation();
+            ui.collapsing("Target Node Accumulation", |ui| {
+                self.display_node_vector(ui, &target_accumulation);
+            });
+            ui.label(format!(
+                "Total Removed by Accumulation (0 - 1): {:.08}",
+                self.amount_removed_by_accumulation
+            ));
+        }
 
         ui.separator();
 
@@ -167,13 +198,8 @@ impl ComplexStateManager {
         ui.separator();
     }
 
-    fn display_half_edge_vector(
-        &self,
-        ui: &mut egui::Ui,
-        vector: &DVector<Complex<f64>>,
-        labels: &[(usize, usize)],
-    ) {
-        if labels.len() != vector.nrows() {
+    fn display_half_edge_vector(&self, ui: &mut egui::Ui, vector: &DVector<Complex<f64>>) {
+        if self.labels.len() != vector.nrows() {
             panic!("Matrix dimensions do not match labels")
         }
 
@@ -183,13 +209,13 @@ impl ComplexStateManager {
                 .spacing([10.0, 10.0])
                 .show(ui, |ui| {
                     // column headers
-                    for l in labels.iter() {
+                    for l in self.labels.iter() {
                         ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
                     }
                     ui.end_row();
 
                     // values
-                    for i in 0..labels.len() {
+                    for i in 0..self.labels.len() {
                         if i >= vector.len() {
                             break;
                         }
@@ -204,13 +230,8 @@ impl ComplexStateManager {
         });
     }
 
-    fn display_node_vector(
-        &self,
-        ui: &mut egui::Ui,
-        vector: &DVector<f64>,
-        labels: &[(usize, usize)],
-    ) {
-        let mut labels = labels.iter().map(|x| x.0).collect::<Vec<_>>();
+    fn display_node_vector(&self, ui: &mut egui::Ui, vector: &DVector<f64>) {
+        let mut labels = self.labels.iter().map(|x| x.0).collect::<Vec<_>>();
         labels.dedup();
         if labels.len() != vector.nrows() {
             panic!("Matrix dimensions do not match labels")
