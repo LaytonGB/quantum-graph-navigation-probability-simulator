@@ -3,6 +3,12 @@ use nalgebra::{Complex, DMatrix, DVector};
 
 use super::transition_matrix_correction_type::TransitionMatrixCorrectionType;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Headers {
+    Show,
+    Hide,
+}
+
 #[derive(Debug, Clone)]
 pub struct ComplexTransitionMatrix {
     matrix: DMatrix<Complex<f64>>,
@@ -40,12 +46,15 @@ impl ComplexTransitionMatrix {
                 ui.label("No error correction applied.");
             }
             TransitionMatrixCorrectionType::Scalar(x) => {
-                ui.colored_label(error_color, format!("Scalar correction applied: {:.03}", x));
+                ui.horizontal(|ui| {
+                    ui.colored_label(error_color, format!("Scalar correction applied:"));
+                    ui.label(egui::RichText::new(format!("{:.03}", x)).strong());
+                });
             }
             TransitionMatrixCorrectionType::NonScalar(correction_vector) => {
                 ui.collapsing(
                     egui::RichText::new("Non scalar correction applied").color(error_color),
-                    |ui| Self::display_vector(ui, correction_vector, labels),
+                    |ui| Self::display_vector(ui, correction_vector, labels, Headers::Hide),
                 );
             }
         }
@@ -143,7 +152,12 @@ impl ComplexTransitionMatrix {
         });
     }
 
-    fn display_vector(ui: &mut egui::Ui, vector: &DVector<f64>, labels: &[(usize, usize)]) {
+    fn display_vector(
+        ui: &mut egui::Ui,
+        vector: &DVector<f64>,
+        labels: &[(usize, usize)],
+        show_headers: Headers,
+    ) {
         if labels.len() != vector.nrows() {
             panic!("Matrix dimensions do not match labels")
         }
@@ -154,10 +168,12 @@ impl ComplexTransitionMatrix {
                 .spacing([10.0, 10.0])
                 .show(ui, |ui| {
                     // column headers
-                    for l in labels.iter() {
-                        ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                    if show_headers == Headers::Show {
+                        for l in labels.iter() {
+                            ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
+                        }
+                        ui.end_row();
                     }
-                    ui.end_row();
 
                     // values
                     for i in 0..labels.len() {
