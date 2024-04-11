@@ -188,8 +188,6 @@ impl Canvas {
         match (options.mode, self.state_data.as_ref()) {
             (Mode::Edit, _) | (_, None) => plot_ui.points(self.nodes(options)),
             (_, Some(state)) => {
-                println!("PLOTTING");
-
                 // plot nodes with color based on state data
                 let coords = self.nodes_coords();
                 let (min, max) = state
