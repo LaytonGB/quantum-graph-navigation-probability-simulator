@@ -1,8 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
+use angular_units::Deg;
 use egui::{Align2, Color32, FontId, InputState, Key, Modifiers, Pos2, Ui};
 use egui_plot::{Legend, Line, Plot, PlotPoint, PlotUi, Points, Text};
 use nalgebra::DVector;
+use prisma::{Hsl, Rgb};
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 use crate::canvas_actions::CanvasActions;
@@ -187,46 +189,7 @@ impl Canvas {
         // plot nodes
         match (options.mode, self.state_data.as_ref()) {
             (Mode::Edit, _) | (_, None) => plot_ui.points(self.nodes(options)),
-            (_, Some(state)) => {
-                // plot nodes with color based on state data
-                let coords = self.nodes_coords();
-                let (min, max) = state
-                    .iter()
-                    .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), prob| {
-                        (min.min(*prob), max.max(*prob))
-                    });
-
-                let color = |prob: f64| {
-                    if min == max {
-                        return Color32::from_rgb(0, 255, 0);
-                    }
-
-                    // TODO redo coloring gradient
-                    // let prob = (prob - min) / (max - min);
-                    // hue starts at 0 ends at 240
-                    // converts to rgb here
-                    let hue = 240.0 * (1.0 - prob);
-                    let (r, g, b) = if hue <= 60.0 {
-                        (255.0, if hue != 0.0 { 255.0 / hue } else { 0.0 }, 0.0)
-                    } else if hue <= 120.0 {
-                        (255.0 - (hue - 60.0) * 255.0 / 60.0, 255.0, 0.0)
-                    } else if hue <= 180.0 {
-                        (0.0, 255.0, (hue - 120.0) * 255.0 / 60.0)
-                    } else {
-                        (0.0, 255.0 - (hue - 180.0) * 255.0 / 60.0, 255.0)
-                    };
-                    Color32::from_rgb((r) as u8, (g) as u8, (b) as u8)
-                };
-
-                for (i, coord) in coords.iter().enumerate() {
-                    plot_ui.points(
-                        Points::new(vec![(*coord)])
-                            .filled(true)
-                            .radius(5.0)
-                            .color(color(state[i])),
-                    )
-                }
-            }
+            (_, Some(state)) => self.plot_nodes_with_color_by_state(plot_ui, state),
         }
 
         // TODO consider performance
@@ -711,6 +674,39 @@ impl Canvas {
                     .color(Color32::WHITE)
                     .anchor(Align2::LEFT_TOP),
             );
+        }
+    }
+
+    fn plot_nodes_with_color_by_state(&self, plot_ui: &mut PlotUi, state: &DVector<f64>) {
+        trait FromHsl {
+            fn from_hsl(hsl: Hsl<f64, Deg<f64>>) -> Self;
+        }
+        impl FromHsl for Color32 {
+            #[inline]
+            fn from_hsl(hsl: Hsl<f64, Deg<f64>>) -> Self {
+                let rgb = Rgb::from(hsl);
+                Color32::from_rgb(
+                    (rgb.red() * 255.0) as u8,
+                    (rgb.green() * 255.0) as u8,
+                    (rgb.blue() * 255.0) as u8,
+                )
+            }
+        }
+
+        let color = |prob: f64| {
+            let hue = 240.0 * (1.0 - prob);
+            let hsl = Hsl::new(Deg(hue), 1.0, 0.5);
+            Color32::from_hsl(hsl)
+        };
+
+        let coords = self.nodes_coords();
+        for (i, coord) in coords.iter().enumerate() {
+            plot_ui.points(
+                Points::new(vec![(*coord)])
+                    .filled(true)
+                    .radius(5.0)
+                    .color(color(state[i])),
+            )
         }
     }
 }

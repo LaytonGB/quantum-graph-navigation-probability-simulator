@@ -56,11 +56,7 @@ impl Options {
     }
 
     pub fn get_node_color(&self) -> Color32 {
-        match self.mode {
-            Mode::Edit => Color32::RED,
-            Mode::Classical => Color32::WHITE,
-            Mode::Quantum => Color32::WHITE,
-        }
+        Color32::RED
     }
 
     pub fn get_line_color(&self) -> Color32 {
