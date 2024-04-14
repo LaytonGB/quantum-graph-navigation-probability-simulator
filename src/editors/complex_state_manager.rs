@@ -87,7 +87,7 @@ impl ComplexStateManager {
             self.update_probability_vector(adjacency_list);
             self.is_state_updated = false;
         }
-        self.probability_vector.clone()
+        self.account_for_targets(self.probability_vector.clone())
     }
 
     pub(crate) fn get_target_accumulation(&self) -> DVector<f64> {
@@ -263,5 +263,19 @@ impl ComplexStateManager {
     fn show_debug_info(&self, ui: &mut egui::Ui) {
         let probability_sum = self.probability_vector.iter().sum::<f64>();
         ui.label(format!("Probabilities Sum: {:.03}", probability_sum));
+    }
+
+    fn account_for_targets(&self, mut probabilities: DVector<f64>) -> DVector<f64> {
+        if self.target_node_indexes.is_empty() {
+            return probabilities;
+        }
+
+        let total_accumulated = self.target_node_accumulation.values().sum::<f64>();
+        probabilities *= 1.0 - total_accumulated;
+        for (i, v) in self.target_node_accumulation.iter() {
+            probabilities[*i] = *v;
+        }
+
+        probabilities
     }
 }

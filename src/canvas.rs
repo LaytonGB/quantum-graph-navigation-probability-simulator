@@ -701,8 +701,13 @@ impl Canvas {
         for (node, probability) in self.nodes.iter().zip(state_data.iter()) {
             let global_node = plot_ui.screen_from_plot(node.borrow().clone().into());
             let adjusted_node = plot_ui.plot_from_screen(global_node + [5.0, 5.0].into());
+            let text = if *probability > 1e-12 && *probability < 0.01 {
+                format!("{:.02e}", probability)
+            } else {
+                format!("{:.02}", probability)
+            };
             plot_ui.text(
-                Text::new(adjusted_node.into(), format!("{:.02}", probability))
+                Text::new(adjusted_node.into(), text)
                     .color(Color32::WHITE)
                     .anchor(Align2::LEFT_TOP),
             );
