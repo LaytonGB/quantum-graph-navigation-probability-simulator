@@ -175,12 +175,19 @@ impl EditorsContainer {
         self.state_manager = StateManager::None;
     }
 
-    pub(crate) fn get_state_data(&mut self) -> Option<DVector<f64>> {
+    pub(crate) fn get_state_data(&mut self, edges: &Vec<(usize, usize)>) -> Option<DVector<f64>> {
         match &mut self.state_manager {
             StateManager::Classical(csm) => Some(csm.get_state_data()),
             StateManager::Complex(csm) => {
-                let MatrixEditor::Complex(cme) = &mut self.matrix_editor else {
-                    panic!("State manager is complex but matrix editor is not");
+                let cme = match self.matrix_editor {
+                    MatrixEditor::Complex(ref mut cme) => cme,
+                    _ => {
+                        self.matrix_editor = MatrixEditor::Complex(ComplexMatrixEditor::new(edges));
+                        let MatrixEditor::Complex(cme) = &mut self.matrix_editor else {
+                            panic!();
+                        };
+                        cme
+                    }
                 };
 
                 if cme.is_canvas_update_ready() {
@@ -213,24 +220,46 @@ impl EditorsContainer {
         }
     }
 
-    pub(crate) fn update_editor_from_edges(
-        &mut self,
-        edges: &Vec<(usize, usize)>,
-        mode_change_data: Option<(Mode, Mode)>,
-    ) {
+    pub(crate) fn update_editor_from_edges(&mut self, edges: &Vec<(usize, usize)>) {
         match &mut self.matrix_editor {
             MatrixEditor::Classical(me) => me.update_from_canvas_edges(edges),
-            MatrixEditor::Complex(_) => match mode_change_data {
-                Some((_, Mode::Quantum)) => {
-                    self.matrix_editor = MatrixEditor::Complex(ComplexMatrixEditor::new(edges));
-                }
-                _ => (),
-            },
             _ => (),
         }
     }
 
-    pub(crate) fn sync_editors(&mut self, options: &Options, node_count: usize) {
+    pub(crate) fn sync_editors(
+        &mut self,
+        options: &Options,
+        edges: &Vec<(usize, usize)>,
+        node_count: usize,
+    ) {
+        // guarantees that if state was just changed, the matrix editor will be updated
+        match (options.mode, options.mode_change_data) {
+            (Mode::Edit, Some((_, Mode::Edit))) => {
+                self.matrix_editor = MatrixEditor::None;
+                self.state_manager = StateManager::None;
+            }
+            (Mode::Classical, Some((_, Mode::Classical))) => {
+                let me = ClassicalMatrixEditor::new(node_count);
+                self.state_manager =
+                    StateManager::Classical(ClassicalStateManager::try_from(&me.matrix).unwrap());
+                self.matrix_editor =
+                    MatrixEditor::Classical(ClassicalMatrixEditor::new(node_count));
+            }
+            (Mode::Quantum, Some((_, Mode::Quantum))) => {
+                dbg!("instantiated complex editors");
+                let cme = ComplexMatrixEditor::new(edges);
+                self.state_manager = StateManager::Complex(ComplexStateManager::new(
+                    cme.get_combined_matrix(),
+                    cme.get_labels(),
+                    options.generic.start_node_idx,
+                    options.specific.quantum.target_node_indexes.clone(),
+                ));
+                self.matrix_editor = MatrixEditor::Complex(cme);
+            }
+            _ => (),
+        };
+
         match (&mut self.matrix_editor, &mut self.state_manager) {
             (MatrixEditor::Classical(me), StateManager::Classical(csm)) => {
                 csm.set_start_node_idx(options.generic.start_node_idx);

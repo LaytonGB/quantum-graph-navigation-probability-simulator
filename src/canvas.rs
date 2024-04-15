@@ -694,7 +694,12 @@ impl Canvas {
         }
 
         let color = |prob: f64| {
-            let hue = 240.0 * (1.0 - prob);
+            // TODO stop somewhere when a NaN occurs
+            let hue = if prob >= 0.0 && prob <= 1.0 {
+                240.0 * (1.0 - prob)
+            } else {
+                0.0
+            };
             let hsl = Hsl::new(Deg(hue), 1.0, 0.5);
             Color32::from_hsl(hsl)
         };

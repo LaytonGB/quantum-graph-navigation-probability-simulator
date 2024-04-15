@@ -133,10 +133,8 @@ impl ComplexMatrixEditor {
                 for method in PropagationMethod::VARIANTS {
                     if ui.button(format!("{}", method)).clicked() {
                         self.propagation_method = *method;
-                        self.propagation_matrix = Self::new_propagation_matrix(
-                            self.propagation_method,
-                            &self.labels,
-                        );
+                        self.propagation_matrix =
+                            Self::new_propagation_matrix(self.propagation_method, &self.labels);
                         self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
                     }
                 }
@@ -262,6 +260,7 @@ impl ComplexMatrixEditor {
         self.propagation_matrix =
             Self::new_propagation_matrix(self.propagation_method, &self.labels);
         self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
+        self.is_canvas_update_ready = true;
     }
 
     fn new_labels(adjacency_list: &HashMap<usize, Vec<usize>>) -> Vec<(usize, usize)> {

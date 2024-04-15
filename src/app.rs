@@ -70,8 +70,11 @@ impl eframe::App for EframeApp {
         //     .insert(0, "arial".to_owned());
         // ctx.set_fonts(fonts);
 
-        self.editors
-            .sync_editors(&self.options, self.canvas.nodes.len());
+        self.editors.sync_editors(
+            &self.options,
+            &self.canvas.get_lines_as_idx_tuples(),
+            self.canvas.nodes.len(),
+        );
         self.update_canvas_from_editors();
         self.update_editors_from_canvas(&self.canvas.get_lines_as_idx_tuples());
 
@@ -147,9 +150,6 @@ impl EframeApp {
                             ui.separator();
                             self.editors
                                 .show_classical_editors(ui, self.canvas.nodes.len());
-
-                            let state_data = self.editors.get_state_data();
-                            self.canvas.set_state_data(state_data);
                         }
                         Mode::Quantum => {
                             ui.separator();
@@ -158,12 +158,14 @@ impl EframeApp {
                                 &self.options,
                                 &self.canvas.get_lines_as_idx_tuples(),
                             );
-
-                            let complex_state_data = self.editors.get_state_data();
-                            self.canvas.set_state_data(complex_state_data);
                         }
                         _ => {}
                     }
+
+                    let state_data = self
+                        .editors
+                        .get_state_data(&self.canvas.get_lines_as_idx_tuples());
+                    self.canvas.set_state_data(state_data);
                 });
             });
         }
@@ -171,7 +173,9 @@ impl EframeApp {
 
     fn show_center_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            let state_data = self.editors.get_state_data();
+            let state_data = self
+                .editors
+                .get_state_data(&self.canvas.get_lines_as_idx_tuples());
             self.canvas.set_state_data(state_data);
             self.canvas
                 .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
@@ -288,8 +292,7 @@ impl EframeApp {
                 .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
         }
 
-        self.editors
-            .update_editor_from_edges(edges, self.options.mode_change_data);
+        self.editors.update_editor_from_edges(edges);
 
         self.options.clear_mode_change_data();
     }

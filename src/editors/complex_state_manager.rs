@@ -133,11 +133,8 @@ impl ComplexStateManager {
         self.target_node_indexes = target_node_indexes;
     }
 
-    pub(crate) fn set_transition_matrix_from(
-        &mut self,
-        get_combined_matrix: &DMatrix<Complex<f64>>,
-    ) {
-        self.transition_matrix = ComplexTransitionMatrix::new(get_combined_matrix.clone());
+    pub(crate) fn set_transition_matrix_from(&mut self, combined_matrix: &DMatrix<Complex<f64>>) {
+        self.transition_matrix = ComplexTransitionMatrix::new(combined_matrix.clone());
     }
 
     fn update_probability_vector(&mut self, adjacency_list: &HashMap<usize, Vec<usize>>) {
