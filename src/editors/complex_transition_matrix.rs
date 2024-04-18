@@ -123,7 +123,11 @@ impl ComplexTransitionMatrix {
 
     fn display_matrix(&self, ui: &mut egui::Ui, labels: &[(usize, usize)]) {
         if labels.len() != self.matrix.nrows() || labels.len() != self.matrix.ncols() {
-            panic!("Matrix dimensions do not match labels")
+            panic!(
+                "Matrix dimensions do not match labels: labels:{} vs matrix:{}",
+                labels.len(),
+                self.matrix.nrows()
+            );
         }
 
         egui::ScrollArea::horizontal().show(ui, |ui| {
@@ -142,14 +146,10 @@ impl ComplexTransitionMatrix {
                     for (i, l) in labels.iter().enumerate() {
                         ui.label(egui::RichText::new(format!("{}->{}", l.0, l.1)).strong());
                         for j in 0..labels.len() {
-                            if self.matrix[(i, j)].l1_norm() == 0.0 {
+                            if self.matrix[(i, j)].l1_norm() < 1e-3 {
                                 ui.label("-");
                             } else {
-                                ui.label(format!(
-                                    "{:.03}+{:.03}i",
-                                    self.matrix[(i, j)].re,
-                                    self.matrix[(i, j)].im
-                                ));
+                                ui.label(format!("{:.03}", self.matrix[(i, j)]));
                             }
                         }
                         ui.end_row();

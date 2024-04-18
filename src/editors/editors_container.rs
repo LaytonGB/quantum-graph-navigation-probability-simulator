@@ -115,7 +115,7 @@ impl EditorsContainer {
         }
 
         self.state_manager
-            .show(ui, options, cme.get_adjacency_list());
+            .show(ui, options, cme.get_adjacency_list(), cme.get_labels());
 
         self.show_state_details(ui);
         self.show_state_buttons(ui);
@@ -247,7 +247,6 @@ impl EditorsContainer {
                     MatrixEditor::Classical(ClassicalMatrixEditor::new(node_count));
             }
             (Mode::Quantum, Some((_, Mode::Quantum))) => {
-                dbg!("instantiated complex editors");
                 let cme = ComplexMatrixEditor::new(edges);
                 self.state_manager = StateManager::Complex(ComplexStateManager::new(
                     cme.get_combined_matrix(),

@@ -163,8 +163,15 @@ impl ComplexStateManager {
         };
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, adjacency_list: &HashMap<usize, Vec<usize>>) {
-        self.transition_matrix.show(ui, &self.labels);
+    pub fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        adjacency_list: &HashMap<usize, Vec<usize>>,
+        labels: &[(usize, usize)],
+    ) {
+        self.set_labels(labels);
+
+        self.transition_matrix.show(ui, labels);
 
         ui.separator();
 
@@ -172,6 +179,7 @@ impl ComplexStateManager {
         ui.collapsing("Complex", |ui| {
             self.display_half_edge_vector(ui, &self.state);
         });
+
         let probability_vector = self.get_state_data(adjacency_list);
         ui.collapsing("As Probabilities", |ui| {
             self.display_node_vector(ui, &probability_vector);
@@ -197,7 +205,11 @@ impl ComplexStateManager {
 
     fn display_half_edge_vector(&self, ui: &mut egui::Ui, vector: &DVector<Complex<f64>>) {
         if self.labels.len() != vector.nrows() {
-            panic!("Matrix dimensions do not match labels")
+            panic!(
+                "Matrix dimensions do not match labels: labels:{} vs matrix:{}",
+                self.labels.len(),
+                vector.nrows()
+            );
         }
 
         egui::ScrollArea::horizontal().show(ui, |ui| {
@@ -274,5 +286,9 @@ impl ComplexStateManager {
         }
 
         probabilities
+    }
+
+    pub fn set_labels(&mut self, labels: &[(usize, usize)]) {
+        self.labels = labels.to_vec();
     }
 }
