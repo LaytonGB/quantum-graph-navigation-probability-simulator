@@ -90,29 +90,29 @@ impl std::ops::Div for GraphNode {
     }
 }
 
-impl Into<GraphNode> for [f64; 2] {
-    fn into(self) -> GraphNode {
+impl From<[f64; 2]> for GraphNode {
+    fn from(val: [f64; 2]) -> Self {
         GraphNode {
-            x: self[0],
-            y: self[1],
+            x: val[0],
+            y: val[1],
             ..Default::default()
         }
     }
 }
 
-impl Into<GraphNode> for (f64, f64) {
-    fn into(self) -> GraphNode {
+impl From<(f64, f64)> for GraphNode {
+    fn from(val: (f64, f64)) -> Self {
         GraphNode {
-            x: self.0,
-            y: self.1,
+            x: val.0,
+            y: val.1,
             ..Default::default()
         }
     }
 }
 
-impl Into<GraphNode> for PlotPoint {
-    fn into(self) -> GraphNode {
-        let PlotPoint { x, y } = self;
+impl From<PlotPoint> for GraphNode {
+    fn from(val: PlotPoint) -> Self {
+        let PlotPoint { x, y } = val;
         GraphNode {
             x,
             y,
@@ -121,10 +121,10 @@ impl Into<GraphNode> for PlotPoint {
     }
 }
 
-impl Into<GraphNode> for Pos2 {
-    fn into(self) -> GraphNode {
-        let Pos2 { x, y } = self;
-        GraphNode {
+impl From<Pos2> for GraphNode {
+    fn from(val: Pos2) -> Self {
+        let Pos2 { x, y } = val;
+        Self {
             x: x as f64,
             y: y as f64,
             ..Default::default()
@@ -132,17 +132,14 @@ impl Into<GraphNode> for Pos2 {
     }
 }
 
-impl Into<[f64; 2]> for GraphNode {
-    fn into(self) -> [f64; 2] {
-        [self.x, self.y]
+impl From<GraphNode> for [f64; 2] {
+    fn from(val: GraphNode) -> Self {
+        [val.x, val.y]
     }
 }
 
-impl Into<PlotPoint> for GraphNode {
-    fn into(self) -> PlotPoint {
-        PlotPoint {
-            x: self.x,
-            y: self.y,
-        }
+impl From<GraphNode> for PlotPoint {
+    fn from(val: GraphNode) -> Self {
+        PlotPoint { x: val.x, y: val.y }
     }
 }

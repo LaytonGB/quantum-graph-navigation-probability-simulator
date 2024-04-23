@@ -51,7 +51,7 @@ impl ClassicalTransitionMatrix {
     pub fn get_initial_state(&self, start_node_idx: &Option<usize>) -> DVector<f64> {
         let node_count = (self.matrix.ncols() as f64).sqrt() as usize;
         let mut res = DVector::from_element(self.matrix.ncols(), 0.0);
-        if res.len() == 0 {
+        if res.is_empty() {
             return res;
         }
         let start_node_idx = start_node_idx

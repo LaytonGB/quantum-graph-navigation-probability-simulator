@@ -47,7 +47,7 @@ impl ComplexTransitionMatrix {
             }
             TransitionMatrixCorrectionType::Scalar(x) => {
                 ui.horizontal(|ui| {
-                    ui.colored_label(error_color, format!("Scalar correction applied:"));
+                    ui.colored_label(error_color, "Scalar correction applied:".to_string());
                     ui.label(egui::RichText::new(format!("{:.03}", x)).strong());
                 });
             }
@@ -70,7 +70,7 @@ impl ComplexTransitionMatrix {
         labels: &[(usize, usize)],
     ) -> DVector<Complex<f64>> {
         let mut res = DVector::from_element(self.matrix.ncols(), Complex::new(0.0, 0.0));
-        if res.len() == 0 {
+        if res.is_empty() {
             return res;
         }
         let start_node_idx = start_node_idx.unwrap_or(0);

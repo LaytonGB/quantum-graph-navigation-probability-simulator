@@ -12,8 +12,8 @@ pub struct ContextMenuAddNode {
 
 impl ContextMenuAddNode {
     pub fn clear(&mut self) {
-        self.x = "".to_owned();
-        self.y = "".to_owned();
+        "".clone_into(&mut self.x);
+        "".clone_into(&mut self.y);
     }
 }
 
@@ -42,9 +42,7 @@ impl ContextMenu {
                     canvas.context_menu_values.add_node.x.parse(),
                     canvas.context_menu_values.add_node.y.parse(),
                 ) {
-                    canvas
-                        .add_node(GraphNode::new_unlabelled(x, y), Snap::None)
-                        .ok();
+                    canvas.add_node(GraphNode::new_unlabelled(x, y), Snap::None);
                     canvas.context_menu_values.add_node.clear();
                     ui.close_menu();
                 }

@@ -46,7 +46,7 @@ impl Editor for ComplexMatrixEditor {
 }
 
 impl ComplexMatrixEditor {
-    pub fn new(edges: &Vec<(usize, usize)>) -> Self {
+    pub fn new(edges: &[(usize, usize)]) -> Self {
         let mut adjacency_list = edges.iter().fold(HashMap::new(), |mut m, (i, j)| {
             m.entry(*i)
                 .and_modify(|e: &mut Vec<usize>| e.push(*j))
@@ -216,7 +216,7 @@ impl ComplexMatrixEditor {
                         Ok(Value::Int(num)) => num as f64,
                         Ok(Value::Float(num)) => num,
                         _ => {
-                            self.text_fields[i][j] = self.previous_text_fields[i][j].clone();
+                            self.text_fields[i][j].clone_from(&self.previous_text_fields[i][j]);
                             continue;
                         }
                     };
@@ -226,7 +226,7 @@ impl ComplexMatrixEditor {
                         Ok(Value::Int(num)) => num as f64,
                         Ok(Value::Float(num)) => num,
                         _ => {
-                            self.text_fields[i] = self.previous_text_fields[i].clone();
+                            self.text_fields[i].clone_from(&self.previous_text_fields[i]);
                             continue;
                         }
                     };
@@ -243,7 +243,7 @@ impl ComplexMatrixEditor {
         }
 
         self.combined_matrix = &self.scatter_matrix * &self.propagation_matrix;
-        self.previous_text_fields = self.text_fields.clone();
+        self.previous_text_fields.clone_from(&self.text_fields);
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
     }
@@ -255,7 +255,7 @@ impl ComplexMatrixEditor {
     fn reset_from_adjacency_list(&mut self) {
         self.labels = Self::new_labels(&self.adjacency_list);
         self.text_fields = Self::new_text_fields(&self.adjacency_list);
-        self.previous_text_fields = self.text_fields.clone();
+        self.previous_text_fields.clone_from(&self.text_fields);
         self.scatter_matrix = Self::new_scatter_matrix(self.labels.len());
         self.propagation_matrix =
             Self::new_propagation_matrix(self.propagation_method, &self.labels);
@@ -298,7 +298,7 @@ impl ComplexMatrixEditor {
 
     fn new_propagation_matrix(
         propagation_method: PropagationMethod,
-        labels: &Vec<(usize, usize)>,
+        labels: &[(usize, usize)],
     ) -> DMatrix<Complex<f64>> {
         let n = labels.len();
         match propagation_method {

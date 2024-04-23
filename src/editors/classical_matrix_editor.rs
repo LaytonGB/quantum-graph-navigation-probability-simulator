@@ -90,12 +90,12 @@ impl ClassicalMatrixEditor {
                 Ok(Value::Int(num)) => self.set_ith_element(i, num as f64),
                 Ok(Value::Float(num)) => self.set_ith_element(i, num),
                 _ => {
-                    self.text_fields[i] = self.previous_text_fields[i].clone();
+                    self.text_fields[i].clone_from(&self.previous_text_fields[i]);
                     continue;
                 }
             };
         }
-        self.previous_text_fields = self.text_fields.clone();
+        self.previous_text_fields.clone_from(&self.text_fields);
         self.text_fields_modified = false;
         self.is_canvas_update_ready = true;
     }
@@ -141,11 +141,11 @@ impl ClassicalMatrixEditor {
         for i in 0..size.min(old_size) {
             for j in 0..size.min(old_size) {
                 if i < old_size && j < old_size {
-                    self.text_fields[i * size + j] = old_text_fields[i * old_size + j].clone();
+                    self.text_fields[i * size + j].clone_from(&old_text_fields[i * old_size + j]);
                 }
             }
         }
-        self.previous_text_fields = self.text_fields.clone();
+        self.previous_text_fields.clone_from(&self.text_fields);
     }
 
     pub(crate) fn remove_node(&mut self, node_idxs: Vec<usize>) {
@@ -166,8 +166,8 @@ impl ClassicalMatrixEditor {
                 }
 
                 new_matrix[(row_idx, col_idx)] = self.matrix[(i, j)];
-                new_text_fields[row_idx * (self.matrix.nrows() - n) + col_idx] =
-                    self.text_fields[i * self.matrix.nrows() + j].clone();
+                new_text_fields[row_idx * (self.matrix.nrows() - n) + col_idx]
+                    .clone_from(&self.text_fields[i * self.matrix.nrows() + j]);
 
                 col_idx += 1;
             }
@@ -175,10 +175,11 @@ impl ClassicalMatrixEditor {
         }
         self.matrix = new_matrix;
         self.text_fields = new_text_fields;
-        self.previous_text_fields = self.text_fields.clone();
+        self.previous_text_fields
+            .clone_from(&self.text_fields.clone());
     }
 
-    pub(crate) fn update_from_canvas_edges(&mut self, edges: &Vec<(usize, usize)>) {
+    pub(crate) fn update_from_canvas_edges(&mut self, edges: &[(usize, usize)]) {
         let matrix = &mut self.matrix;
 
         let edges: HashSet<(usize, usize)> = HashSet::from_iter(edges.iter().cloned());

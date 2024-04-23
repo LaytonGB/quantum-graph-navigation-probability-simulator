@@ -64,7 +64,7 @@ impl ClassicalStateManager {
             self.state
                 .as_slice()
                 .chunks(node_count)
-                .map(|x| x.into_iter().sum::<f64>()),
+                .map(|x| x.iter().sum::<f64>()),
         )
     }
 

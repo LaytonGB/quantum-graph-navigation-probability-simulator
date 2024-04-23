@@ -286,7 +286,7 @@ impl EframeApp {
         }
     }
 
-    fn update_editors_from_canvas(&mut self, edges: &Vec<(usize, usize)>) {
+    fn update_editors_from_canvas(&mut self, edges: &[(usize, usize)]) {
         if !self.canvas.node_deletion_history.is_empty() {
             self.editors
                 .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));

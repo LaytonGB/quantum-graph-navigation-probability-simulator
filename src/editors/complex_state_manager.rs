@@ -117,7 +117,7 @@ impl ComplexStateManager {
         /*  || self.probability_vector.len() != matrix.ncols() */
         {
             self.transition_matrix = ComplexTransitionMatrix::new(matrix.clone());
-            self.reset_state(&vec![]);
+            self.reset_state(&[]);
         }
     }
 
@@ -138,7 +138,7 @@ impl ComplexStateManager {
     }
 
     fn update_probability_vector(&mut self, adjacency_list: &HashMap<usize, Vec<usize>>) {
-        self.probability_vector = if self.state.len() == 0 {
+        self.probability_vector = if self.state.is_empty() {
             DVector::from_element(0, 0.0)
         } else {
             // collapse rows

@@ -74,7 +74,7 @@ impl EditorsContainer {
                 csm.set_transition_matrix_from(&cme.matrix);
             } else {
                 match ClassicalStateManager::try_from(&cme.matrix) {
-                    Ok(csm) => self.state_manager = StateManager::Classical(csm),
+                    Ok(csm) => self.state_manager = StateManager::Classical(csm.into()),
                     Err(e) => eprintln!("Error converting matrix to state manager: {}", e),
                 }
             }
@@ -88,7 +88,7 @@ impl EditorsContainer {
         &mut self,
         ui: &mut egui::Ui,
         options: &Options,
-        edges: &Vec<(usize, usize)>,
+        edges: &[(usize, usize)],
     ) {
         if !self.matrix_editor.is_complex() {
             self.matrix_editor = MatrixEditor::Complex(ComplexMatrixEditor::new(edges));
@@ -105,12 +105,15 @@ impl EditorsContainer {
                 csm.make_transition_matrix_compatible(cme.get_combined_matrix())
             }
             _ => {
-                self.state_manager = StateManager::Complex(ComplexStateManager::new(
-                    cme.get_combined_matrix(),
-                    cme.get_labels(),
-                    options.generic.start_node_idx,
-                    options.specific.quantum.target_node_indexes.clone(),
-                ))
+                self.state_manager = StateManager::Complex(
+                    ComplexStateManager::new(
+                        cme.get_combined_matrix(),
+                        cme.get_labels(),
+                        options.generic.start_node_idx,
+                        options.specific.quantum.target_node_indexes.clone(),
+                    )
+                    .into(),
+                )
             }
         }
 
@@ -165,7 +168,10 @@ impl EditorsContainer {
     pub fn step_state_forward(&mut self) -> Result<()> {
         match &mut self.state_manager {
             StateManager::Classical(csm) => csm.step_forward(),
-            StateManager::Complex(csm) => Ok(csm.step_forward()),
+            StateManager::Complex(csm) => {
+                csm.step_forward();
+                Ok(())
+            }
             StateManager::None => Err(anyhow::anyhow!("No state manager found")),
         }
     }
@@ -175,7 +181,7 @@ impl EditorsContainer {
         self.state_manager = StateManager::None;
     }
 
-    pub(crate) fn get_state_data(&mut self, edges: &Vec<(usize, usize)>) -> Option<DVector<f64>> {
+    pub(crate) fn get_state_data(&mut self, edges: &[(usize, usize)]) -> Option<DVector<f64>> {
         match &mut self.state_manager {
             StateManager::Classical(csm) => Some(csm.get_state_data()),
             StateManager::Complex(csm) => {
@@ -213,24 +219,23 @@ impl EditorsContainer {
                 if let MatrixEditor::Complex(cme) = &self.matrix_editor {
                     csm.reset_state(cme.get_labels());
                 } else {
-                    csm.reset_state(&vec![]);
+                    csm.reset_state(&[]);
                 }
             }
             StateManager::None => (),
         }
     }
 
-    pub(crate) fn update_editor_from_edges(&mut self, edges: &Vec<(usize, usize)>) {
-        match &mut self.matrix_editor {
-            MatrixEditor::Classical(me) => me.update_from_canvas_edges(edges),
-            _ => (),
+    pub(crate) fn update_editor_from_edges(&mut self, edges: &[(usize, usize)]) {
+        if let MatrixEditor::Classical(me) = &mut self.matrix_editor {
+            me.update_from_canvas_edges(edges);
         }
     }
 
     pub(crate) fn sync_editors(
         &mut self,
         options: &Options,
-        edges: &Vec<(usize, usize)>,
+        edges: &[(usize, usize)],
         node_count: usize,
     ) {
         // guarantees that if state was just changed, the matrix editor will be updated
@@ -241,19 +246,23 @@ impl EditorsContainer {
             }
             (Mode::Classical, Some((_, Mode::Classical))) => {
                 let me = ClassicalMatrixEditor::new(node_count);
-                self.state_manager =
-                    StateManager::Classical(ClassicalStateManager::try_from(&me.matrix).unwrap());
+                self.state_manager = StateManager::Classical(
+                    ClassicalStateManager::try_from(&me.matrix).unwrap().into(),
+                );
                 self.matrix_editor =
                     MatrixEditor::Classical(ClassicalMatrixEditor::new(node_count));
             }
             (Mode::Quantum, Some((_, Mode::Quantum))) => {
                 let cme = ComplexMatrixEditor::new(edges);
-                self.state_manager = StateManager::Complex(ComplexStateManager::new(
-                    cme.get_combined_matrix(),
-                    cme.get_labels(),
-                    options.generic.start_node_idx,
-                    options.specific.quantum.target_node_indexes.clone(),
-                ));
+                self.state_manager = StateManager::Complex(
+                    ComplexStateManager::new(
+                        cme.get_combined_matrix(),
+                        cme.get_labels(),
+                        options.generic.start_node_idx,
+                        options.specific.quantum.target_node_indexes.clone(),
+                    )
+                    .into(),
+                );
                 self.matrix_editor = MatrixEditor::Complex(cme);
             }
             _ => (),

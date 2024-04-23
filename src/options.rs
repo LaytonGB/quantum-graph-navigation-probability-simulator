@@ -16,7 +16,7 @@ impl Options {
     pub fn show_mode_buttons(&mut self, ui: &mut Ui) {
         ui.heading("Computation Style");
         for mode in [Mode::Edit, Mode::Classical, Mode::Quantum] {
-            let mut btn = ui.button(format!("{}", mode.name()));
+            let mut btn = ui.button(mode.name().to_string());
             if mode == self.mode {
                 btn = btn.highlight();
             }
@@ -48,8 +48,9 @@ impl Options {
                 if let Ok(idx) = self.generic.start_node_idx_text_field.parse::<usize>() {
                     self.generic.start_node_idx = idx;
                 } else {
-                    self.generic.start_node_idx_text_field =
-                        self.generic.previous_start_node_idx_text_field.clone();
+                    self.generic
+                        .start_node_idx_text_field
+                        .clone_from(&self.generic.previous_start_node_idx_text_field);
                 }
             }
         });

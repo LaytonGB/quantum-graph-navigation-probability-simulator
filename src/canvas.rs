@@ -46,15 +46,13 @@ pub struct Canvas {
 impl Canvas {
     fn new(nodes: Vec<Rc<RefCell<GraphNode>>>, lines: Option<Vec<(usize, usize)>>) -> Self {
         let lines = lines
-            .and_then(|lines| {
-                Some(
-                    lines
-                        .into_iter()
-                        .map(|(a, b)| GraphLine::new(nodes[a].clone(), nodes[b].clone()))
-                        .collect(),
-                )
+            .map(|lines| {
+                lines
+                    .into_iter()
+                    .map(|(a, b)| GraphLine::new(nodes[a].clone(), nodes[b].clone()))
+                    .collect()
             })
-            .unwrap_or(Vec::new());
+            .unwrap_or_default();
 
         Self {
             nodes,
@@ -64,21 +62,20 @@ impl Canvas {
     }
 
     /// Adds a node to the canvas.
-    pub fn add_node(&mut self, node: impl Into<GraphNode>, snap: Snap) -> Result<(), ()> {
+    pub fn add_node(&mut self, node: impl Into<GraphNode>, snap: Snap) -> Option<()> {
         let node: GraphNode = node.into();
         let rounded_node = node.round_to(snap);
         if let Some(rounded_node) = rounded_node {
-            if self
+            if !self
                 .nodes
                 .iter()
-                .find(|n| n.borrow().clone() == rounded_node)
-                .is_none()
+                .any(|n| n.borrow().clone() == rounded_node)
             {
                 self.nodes.push(Rc::new(RefCell::new(rounded_node)));
-                return Ok(());
+                return Some(());
             }
         }
-        Err(())
+        None
     }
 
     fn move_node(
@@ -103,14 +100,12 @@ impl Canvas {
                 }
             }
             self.reset_moving_node_position();
-        } else {
-            if let Some((_, node)) = self.find_closest_node_and_dist(pointer_coords) {
-                let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
-                let pointer_to_node_dist = euclidean_dist(&global_pointer_coords, &node_pos);
-                if pointer_to_node_dist <= POINTER_INTERACTION_RADIUS {
-                    let original_node = node.borrow().clone();
-                    self.node_being_moved_and_origin = Some((node, original_node));
-                }
+        } else if let Some((_, node)) = self.find_closest_node_and_dist(pointer_coords) {
+            let node_pos = plot_ui.screen_from_plot(node.borrow().clone().into());
+            let pointer_to_node_dist = euclidean_dist(&global_pointer_coords, &node_pos);
+            if pointer_to_node_dist <= POINTER_INTERACTION_RADIUS {
+                let original_node = node.borrow().clone();
+                self.node_being_moved_and_origin = Some((node, original_node));
             }
         }
     }
@@ -136,7 +131,7 @@ impl Canvas {
         let index = self
             .nodes
             .iter()
-            .position(|node| &target_node == &node.borrow().clone());
+            .position(|node| target_node == *node.borrow());
         if let Some(index) = index {
             self.lines = self
                 .lines
@@ -206,7 +201,7 @@ impl Canvas {
             let adjusted_node = plot_ui.plot_from_screen(global_node + [-5.0, -5.0].into());
             plot_ui.text(
                 Text::new(
-                    adjusted_node.into(),
+                    adjusted_node,
                     node.borrow().label.as_ref().unwrap_or(&i.to_string()),
                 )
                 .color(Color32::WHITE)
@@ -236,12 +231,12 @@ impl Canvas {
         if let Some((_, clicked_node)) = self.find_closest_node_and_dist(pointer_coords) {
             let clicked_node_global_pos =
                 plot_ui.screen_from_plot(clicked_node.borrow().clone().into());
-            if euclidean_dist(&clicked_node_global_pos, &global_pointer_coords.into())
+            if euclidean_dist(&clicked_node_global_pos, &global_pointer_coords)
                 <= POINTER_INTERACTION_RADIUS
             {
                 if let Some(start_node) = &self.line_start {
                     let line = GraphLine::new(start_node.clone(), clicked_node);
-                    if line.start != line.end && self.lines.iter().find(|l| **l == line).is_none() {
+                    if line.start != line.end && !self.lines.iter().any(|l| *l == line) {
                         self.line_start = None;
                         self.lines.push(line);
                     }
@@ -454,7 +449,7 @@ impl Canvas {
                 self.move_node(plot_ui, pointer_coords, global_pointer_coords, snap)
             }
             (Tool::Node, _) => {
-                if self.add_node(pointer_coords, snap).is_err() {
+                if self.add_node(pointer_coords, snap).is_none() {
                     // TODO normalize errors
                     eprintln!("[{}:{}] Error: Node not created", file!(), line!());
                 }
@@ -593,7 +588,7 @@ impl Canvas {
         let global_pointer_coords = plot_ui
             .ctx()
             .input(|i| i.pointer.latest_pos())
-            .and_then(|gpc| Some(gpc - plot_ui.response().drag_delta()));
+            .map(|gpc| gpc - plot_ui.response().drag_delta());
         (pointer_coords, global_pointer_coords)
     }
 
@@ -627,15 +622,11 @@ impl Canvas {
                     .iter()
                     .enumerate()
                     .fold((None, None), |(start, end), (i, n)| {
-                        if start.is_none() {
-                            if l.start == *n {
-                                return (Some(i), end);
-                            }
+                        if start.is_none() && l.start == *n {
+                            return (Some(i), end);
                         }
-                        if end.is_none() {
-                            if l.end == *n {
-                                return (start, Some(i));
-                            }
+                        if end.is_none() && l.end == *n {
+                            return (start, Some(i));
                         }
                         (start, end)
                     })
@@ -670,7 +661,7 @@ impl Canvas {
                 format!("{:.02}", probability)
             };
             plot_ui.text(
-                Text::new(adjusted_node.into(), text)
+                Text::new(adjusted_node, text)
                     .color(Color32::WHITE)
                     .anchor(Align2::LEFT_TOP),
             );
@@ -695,7 +686,7 @@ impl Canvas {
 
         let color = |prob: f64| {
             // TODO stop somewhere when a NaN occurs
-            let hue = if prob >= 0.0 && prob <= 1.0 {
+            let hue = if (0.0..=1.0).contains(&prob) {
                 240.0 * (1.0 - prob)
             } else {
                 0.0

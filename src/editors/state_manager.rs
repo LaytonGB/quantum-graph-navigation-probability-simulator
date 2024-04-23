@@ -9,8 +9,8 @@ use crate::{
 pub enum StateManager {
     #[default]
     None,
-    Classical(ClassicalStateManager),
-    Complex(ComplexStateManager),
+    Classical(Box<ClassicalStateManager>),
+    Complex(Box<ComplexStateManager>),
 }
 
 impl StateManager {
@@ -21,11 +21,8 @@ impl StateManager {
         adjacency_list: &HashMap<usize, Vec<usize>>,
         labels: &[(usize, usize)],
     ) {
-        match (self, options.mode) {
-            (Self::Complex(complex_state_manager), Mode::Quantum) => {
-                complex_state_manager.show(ui, adjacency_list, labels)
-            }
-            _ => {}
+        if let (Self::Complex(csm), Mode::Quantum) = (self, options.mode) {
+            csm.show(ui, adjacency_list, labels)
         }
     }
 }

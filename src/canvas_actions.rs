@@ -33,7 +33,7 @@ impl CanvasActions {
                     ui.text_edit_singleline(&mut self.add_graph_values.y);
                 });
 
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(target_family = "windows")]
                 if ui.button("Place graph").clicked() {
                     if let Ok(graph_place_coords) = self.add_graph_values.clone().try_into() {
                         self.place_graph(canvas, graph_place_coords);
@@ -49,7 +49,7 @@ impl CanvasActions {
         });
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(target_family = "windows")]
     pub fn place_graph(&self, canvas: &mut Canvas, graph_center: GraphNode) {
         use wfd::DialogParams;
 

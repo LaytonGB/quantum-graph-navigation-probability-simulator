@@ -52,12 +52,10 @@ impl GraphLine {
         let (ap, bp) = (a.dist(p), b.dist(p));
         if len < ap && len < bp {
             None
+        } else if ap <= bp {
+            Some((a.clone(), ap))
         } else {
-            if ap <= bp {
-                Some((a.clone(), ap))
-            } else {
-                Some((b.clone(), bp))
-            }
+            Some((b.clone(), bp))
         }
     }
 
@@ -86,12 +84,6 @@ impl PartialOrd for GraphLine {
     }
 }
 
-impl Ord for GraphLine {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
-    }
-}
-
 impl PartialEq for GraphLine {
     fn eq(&self, other: &Self) -> bool {
         Rc::<RefCell<GraphNode>>::ptr_eq(&self.start, &other.start)
@@ -101,9 +93,9 @@ impl PartialEq for GraphLine {
 
 impl Eq for GraphLine {}
 
-impl Into<PlotPoints> for GraphLine {
-    fn into(self) -> PlotPoints {
-        let (a, b) = (self.start.borrow(), self.end.borrow());
+impl From<GraphLine> for PlotPoints {
+    fn from(val: GraphLine) -> Self {
+        let (a, b) = (val.start.borrow(), val.end.borrow());
         vec![[a.x, a.y], [b.x, b.y]].into()
     }
 }

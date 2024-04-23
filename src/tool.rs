@@ -22,7 +22,7 @@ impl Tool {
     }
 
     pub fn show(&self, ui: &mut Ui, selected_tool: &mut Tool, label_text: &mut String) {
-        let mut btn = ui.button(format!("{}", self.name()));
+        let mut btn = ui.button(self.name().to_string());
         if selected_tool == self {
             btn = btn.highlight();
             if *self == Tool::Label {
