@@ -143,6 +143,36 @@ impl ComplexMatrixEditor {
         // display section for each node's connections
         for (i, from) in from_nodes.iter().enumerate() {
             let connections = self.adjacency_list.get(from).unwrap().clone();
+
+            #[cfg(feature = "auto-fill-1")]
+            {
+                let set_zeroes_to_default = (0..self.text_fields[i].len()).all(|j| {
+                    (0..self.text_fields[i][j].len()).all(|k| {
+                        self.text_fields[i][j][k].0 == "0" && self.text_fields[i][j][k].1 == "0"
+                    })
+                });
+                if set_zeroes_to_default {
+                    self.text_fields_modified = true;
+
+                    for j in 0..connections.len() {
+                        let text_fields = &mut self.text_fields[i][j];
+                        text_fields
+                            .iter_mut()
+                            .enumerate()
+                            .for_each(|(k, field)| match (j, k) {
+                                (j, k) if j == k => {
+                                    field.0 = "1".to_string();
+                                    field.1 = "0".to_string();
+                                }
+                                _ => {
+                                    field.0 = "0".to_string();
+                                    field.1 = "1".to_string();
+                                }
+                            });
+                    }
+                }
+            }
+
             ui.collapsing(format!("Node {}", from), |ui| {
                 if ui
                     .checkbox(

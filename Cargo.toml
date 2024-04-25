@@ -6,6 +6,10 @@ edition = "2021"
 rust-version = "1.75"
 
 
+[features]
+auto-fill-1 = []
+
+
 [dependencies]
 egui = "0.25.0"
 eframe = { version = "0.25.0", default-features = false, features = [
