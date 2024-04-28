@@ -73,11 +73,20 @@ impl ComplexTransitionMatrix {
         if res.is_empty() {
             return res;
         }
+
         let start_node_idx = start_node_idx.unwrap_or(0);
-        res[labels
+        let adjacent_nodes = labels
             .iter()
-            .position(|(x, _)| *x == start_node_idx)
-            .unwrap_or(0)] = Complex::new(1.0, 0.0);
+            .enumerate()
+            .filter(|(_, (x, _))| *x == start_node_idx)
+            .map(|(i, _)| i)
+            .collect::<Vec<_>>();
+        let n = adjacent_nodes.len() as f64;
+        let x = Complex::new((1.0 / n).sqrt(), 0.0);
+        for &i in adjacent_nodes.iter() {
+            res[i] = x;
+        }
+
         res
     }
 
