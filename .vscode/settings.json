@@ -12,5 +12,8 @@
     "nrows",
     "powi",
     "Repr"
+  ],
+  "rust-analyzer.cargo.features": [
+    "auto-fill-qft"
   ]
 }

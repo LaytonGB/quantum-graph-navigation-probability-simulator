@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, f64::consts::PI};
 
 use evalexpr::{context_map, eval_with_context, HashMapContext, Value};
 use nalgebra::{Complex, DMatrix};
@@ -169,6 +169,45 @@ impl ComplexMatrixEditor {
                                     field.1 = "1".to_string();
                                 }
                             });
+                    }
+                }
+            }
+
+            #[cfg(feature = "auto-fill-qft")]
+            {
+                let set_zeroes_to_default = (0..self.text_fields[i].len()).all(|j| {
+                    (0..self.text_fields[i][j].len()).all(|k| {
+                        self.text_fields[i][j][k].0 == "0" && self.text_fields[i][j][k].1 == "0"
+                    })
+                });
+                if set_zeroes_to_default {
+                    self.text_fields_modified = true;
+
+                    let size = connections.len();
+                    let mut mtx = DMatrix::from_element(size, size, Complex::new(1.0, 0.0));
+                    for i in 1..size {
+                        for j in 1..size {
+                            let x = i as f64 * j as f64 * 2.0 * PI / size as f64;
+                            mtx[(i, j)] = Complex::new(x.cos(), x.sin())
+                        }
+                    }
+                    for i in 1..size {
+                        for j in 1..size {
+                            if mtx[(i, j)].re.abs() < 1e-10 {
+                                mtx[(i, j)].re = 0.0;
+                            }
+                            if mtx[(i, j)].im.abs() < 1e-10 {
+                                mtx[(i, j)].im = 0.0;
+                            }
+                        }
+                    }
+
+                    for j in 0..connections.len() {
+                        let text_fields = &mut self.text_fields[i][j];
+                        text_fields.iter_mut().enumerate().for_each(|(k, field)| {
+                            field.0 = mtx[(j, k)].re.to_string();
+                            field.1 = mtx[(j, k)].im.to_string();
+                        });
                     }
                 }
             }

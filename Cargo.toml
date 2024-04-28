@@ -8,6 +8,7 @@ rust-version = "1.75"
 
 [features]
 auto-fill-1 = []
+auto-fill-qft = []
 
 
 [dependencies]
