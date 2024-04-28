@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f64::consts::PI};
+use std::collections::HashMap;
 
 use evalexpr::{context_map, eval_with_context, HashMapContext, Value};
 use nalgebra::{Complex, DMatrix};
@@ -175,6 +175,8 @@ impl ComplexMatrixEditor {
 
             #[cfg(feature = "auto-fill-qft")]
             {
+                use std::f64::consts::PI;
+
                 let set_zeroes_to_default = (0..self.text_fields[i].len()).all(|j| {
                     (0..self.text_fields[i][j].len()).all(|k| {
                         self.text_fields[i][j][k].0 == "0" && self.text_fields[i][j][k].1 == "0"
@@ -429,7 +431,7 @@ impl ComplexMatrixEditor {
                             if matrix[(i, j)].l1_norm() == 0.0 {
                                 ui.label("-");
                             } else {
-                                ui.label(format!("{}+{}i", matrix[(i, j)].re, matrix[(i, j)].im));
+                                ui.label(format!("{:.03}", matrix[(i, j)]));
                             }
                         }
                         ui.end_row();
