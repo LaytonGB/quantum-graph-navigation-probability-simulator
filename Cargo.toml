@@ -1,5 +1,5 @@
 [package]
-name = "eframe_gui_test"
+name = "qugraps"
 version = "0.1.0"
 authors = ["Layton Burchell <laytonb@hotmail.co.uk>"]
 edition = "2021"

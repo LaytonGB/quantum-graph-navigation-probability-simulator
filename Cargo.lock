@@ -572,28 +572,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eframe_gui_test"
-version = "0.1.0"
-dependencies = [
- "angular-units",
- "anyhow",
- "approx 0.5.1",
- "eframe",
- "egui",
- "egui_plot",
- "env_logger",
- "evalexpr",
- "log",
- "nalgebra",
- "prisma",
- "serde",
- "serde_json",
- "strum",
- "wasm-bindgen-futures",
- "wfd",
-]
-
-[[package]]
 name = "egui"
 version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1531,6 +1509,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "qugraps"
+version = "0.1.0"
+dependencies = [
+ "angular-units",
+ "anyhow",
+ "approx 0.5.1",
+ "eframe",
+ "egui",
+ "egui_plot",
+ "env_logger",
+ "evalexpr",
+ "log",
+ "nalgebra",
+ "prisma",
+ "serde",
+ "serde_json",
+ "strum",
+ "wasm-bindgen-futures",
+ "wfd",
 ]
 
 [[package]]

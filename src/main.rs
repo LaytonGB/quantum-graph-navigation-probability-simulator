@@ -10,9 +10,9 @@ fn main() -> eframe::Result<()> {
         ..Default::default()
     };
     eframe::run_native(
-        "Eframe GUI Test",
+        "Quantum Graph Navigation Probability Simulator",
         native_options,
-        Box::new(|cc| Ok(Box::new(eframe_gui_test::EframeApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(qugraps::EframeApp::new(cc)))),
     )
 }
 
@@ -28,7 +28,7 @@ fn main() {
             .start(
                 "the_canvas_id", // hardcode it
                 web_options,
-                Box::new(|cc| Box::new(eframe_gui_test::EframeApp::new(cc))),
+                Box::new(|cc| Box::new(qugraps::EframeApp::new(cc))),
             )
             .await
             .expect("failed to start eframe");
