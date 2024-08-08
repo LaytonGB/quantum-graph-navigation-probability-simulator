@@ -15,7 +15,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Eframe GUI Test",
         native_options,
-        Box::new(|cc| Box::new(eframe_gui_test::EframeApp::new(cc))),
+        Box::new(|cc| Ok(Box::new(eframe_gui_test::EframeApp::new(cc)))),
     )
 }
 
