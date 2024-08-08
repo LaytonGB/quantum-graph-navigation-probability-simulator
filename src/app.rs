@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use std::mem;
 
 use egui::Context;
@@ -7,6 +8,7 @@ use nalgebra::DMatrix;
 use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
 use crate::editors::{Editor, EditorsContainer, MatrixEditor};
+use crate::model::Model;
 use crate::options::{Mode, Options};
 use crate::panels::Layout;
 use crate::tool::Tool;
@@ -15,18 +17,7 @@ use crate::tool::Tool;
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
-    pub canvas: Canvas,
-
-    pub canvas_actions: CanvasActions,
-
-    pub editors: EditorsContainer,
-
-    pub options: Options,
-
-    pub layout: Layout,
-
-    #[serde(skip)] // don't cache this tool for next startup
-    pub selected_tool: Tool,
+    model: Model,
 }
 
 impl EframeApp {
@@ -53,7 +44,7 @@ impl eframe::App for EframeApp {
 
     /// Called each time the UI needs repainting, which may be many times per
     /// second.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or
         // `Area`. For inspiration and more examples, go to https://emilk.github.io/egui
 
@@ -70,233 +61,233 @@ impl eframe::App for EframeApp {
         //     .insert(0, "arial".to_owned());
         // ctx.set_fonts(fonts);
 
-        self.editors.sync_editors(
-            &self.options,
-            &self.canvas.get_lines_as_idx_tuples(),
-            self.canvas.nodes.len(),
-        );
-        self.update_canvas_from_editors();
-        self.update_editors_from_canvas(&self.canvas.get_lines_as_idx_tuples());
+        // self.editors.sync_editors(
+        //     &self.options,
+        //     &self.canvas.get_lines_as_idx_tuples(),
+        //     self.canvas.nodes.len(),
+        // );
+        // self.update_canvas_from_editors();
+        // self.update_editors_from_canvas(&self.canvas.get_lines_as_idx_tuples());
 
-        self.show_top_panel(ctx);
-        self.show_left_panel(ctx);
-        self.show_right_panel(ctx);
-        self.show_center_panel(ctx);
+        // self.show_top_panel(ctx);
+        // self.show_left_panel(ctx);
+        // self.show_right_panel(ctx);
+        // self.show_center_panel(ctx);
     }
 }
 
-impl EframeApp {
-    fn show_top_panel(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar
+// impl EframeApp {
+//     fn show_top_panel(&mut self, ctx: &egui::Context) {
+//         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+//             // The top panel is often a good place for a menu bar
 
-            egui::menu::bar(ui, |ui| {
-                #[cfg(not(target_arch = "wasm32"))] // TODO rework this when we can save in web
-                {
-                    ui.menu_button("File", |ui| self.show_file_menu(ui, ctx));
-                    ui.add_space(16.0);
-                }
+//             egui::menu::bar(ui, |ui| {
+//                 #[cfg(not(target_arch = "wasm32"))] // TODO rework this when we can save in web
+//                 {
+//                     ui.menu_button("File", |ui| self.show_file_menu(ui, ctx));
+//                     ui.add_space(16.0);
+//                 }
 
-                self.canvas_actions
-                    .canvas_menu(ui, &mut self.canvas, &mut self.editors);
-                ui.add_space(16.0);
+//                 self.canvas_actions
+//                     .canvas_menu(ui, &mut self.canvas, &mut self.editors);
+//                 ui.add_space(16.0);
 
-                ui.menu_button("Layout", |ui| {
-                    ui.checkbox(&mut self.layout.tools, "Tools");
-                    ui.checkbox(&mut self.layout.mode, "Modes");
-                });
-                ui.add_space(16.0);
+//                 ui.menu_button("Layout", |ui| {
+//                     ui.checkbox(&mut self.layout.tools, "Tools");
+//                     ui.checkbox(&mut self.layout.mode, "Modes");
+//                 });
+//                 ui.add_space(16.0);
 
-                egui::widgets::global_dark_light_mode_buttons(ui);
-            });
-        });
-    }
+//                 egui::widgets::global_dark_light_mode_buttons(ui);
+//             });
+//         });
+//     }
 
-    fn show_left_panel(&mut self, ctx: &egui::Context) {
-        if self.layout.tools {
-            egui::SidePanel::new(Side::Left, "left_panel").show(ctx, |ui| {
-                ui.heading("Tools");
-                let mut tool_buttons: [Tool; 4] = [Tool::Move, Tool::Node, Tool::Line, Tool::Label];
-                for tool in tool_buttons.iter_mut() {
-                    tool.show(
-                        ui,
-                        &mut self.selected_tool,
-                        &mut self.canvas_actions.add_label_text,
-                    );
-                }
-                // BUG: this line is needed, allows left-panel resizing
-                // is likely fixed if egui is updated
-                ui.separator();
-            });
-        }
-    }
+//     fn show_left_panel(&mut self, ctx: &egui::Context) {
+//         if self.layout.tools {
+//             egui::SidePanel::new(Side::Left, "left_panel").show(ctx, |ui| {
+//                 ui.heading("Tools");
+//                 let mut tool_buttons: [Tool; 4] = [Tool::Move, Tool::Node, Tool::Line, Tool::Label];
+//                 for tool in tool_buttons.iter_mut() {
+//                     tool.show(
+//                         ui,
+//                         &mut self.selected_tool,
+//                         &mut self.canvas_actions.add_label_text,
+//                     );
+//                 }
+//                 // BUG: this line is needed, allows left-panel resizing
+//                 // is likely fixed if egui is updated
+//                 ui.separator();
+//             });
+//         }
+//     }
 
-    fn show_right_panel(&mut self, ctx: &egui::Context) {
-        if self.layout.mode {
-            egui::SidePanel::new(Side::Right, "right_panel").show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.options.show_mode_buttons(ui);
+//     fn show_right_panel(&mut self, ctx: &egui::Context) {
+//         if self.layout.mode {
+//             egui::SidePanel::new(Side::Right, "right_panel").show(ctx, |ui| {
+//                 egui::ScrollArea::vertical().show(ui, |ui| {
+//                     self.options.show_mode_buttons(ui);
 
-                    if self.options.mode != Mode::Edit {
-                        ui.separator();
-                        self.options.show_generic_options(ui);
-                    }
+//                     if self.options.mode != Mode::Edit {
+//                         ui.separator();
+//                         self.options.show_generic_options(ui);
+//                     }
 
-                    ui.separator();
-                    self.options.show_specific_options(ui);
+//                     ui.separator();
+//                     self.options.show_specific_options(ui);
 
-                    match self.options.mode {
-                        Mode::Classical => {
-                            ui.separator();
-                            self.editors
-                                .show_classical_editors(ui, self.canvas.nodes.len());
-                        }
-                        Mode::Quantum => {
-                            ui.separator();
-                            self.editors.show_quantum_editors(
-                                ui,
-                                &self.options,
-                                &self.canvas.get_lines_as_idx_tuples(),
-                            );
-                        }
-                        _ => {}
-                    }
+//                     match self.options.mode {
+//                         Mode::Classical => {
+//                             ui.separator();
+//                             self.editors
+//                                 .show_classical_editors(ui, self.canvas.nodes.len());
+//                         }
+//                         Mode::Quantum => {
+//                             ui.separator();
+//                             self.editors.show_quantum_editors(
+//                                 ui,
+//                                 &self.options,
+//                                 &self.canvas.get_lines_as_idx_tuples(),
+//                             );
+//                         }
+//                         _ => {}
+//                     }
 
-                    let state_data = self
-                        .editors
-                        .get_state_data(&self.canvas.get_lines_as_idx_tuples());
-                    self.canvas.set_state_data(state_data);
-                });
-            });
-        }
-    }
+//                     let state_data = self
+//                         .editors
+//                         .get_state_data(&self.canvas.get_lines_as_idx_tuples());
+//                     self.canvas.set_state_data(state_data);
+//                 });
+//             });
+//         }
+//     }
 
-    fn show_center_panel(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            let state_data = self
-                .editors
-                .get_state_data(&self.canvas.get_lines_as_idx_tuples());
-            self.canvas.set_state_data(state_data);
-            self.canvas
-                .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
-        });
-    }
+//     fn show_center_panel(&mut self, ctx: &egui::Context) {
+//         egui::CentralPanel::default().show(ctx, |ui| {
+//             let state_data = self
+//                 .editors
+//                 .get_state_data(&self.canvas.get_lines_as_idx_tuples());
+//             self.canvas.set_state_data(state_data);
+//             self.canvas
+//                 .show(ui, self.selected_tool, &self.options, &self.canvas_actions);
+//         });
+//     }
 
-    fn show_file_menu(&mut self, ui: &mut Ui, ctx: &Context) {
-        #[cfg(any(target_os = "windows", target_os = "macos"))]
-        {
-            self.show_save_button(ui);
-            self.show_load_button(ui);
-            #[cfg(target_os = "macos")]
-            {
-                explorer_program_name = Some("open");
-            }
-            #[cfg(target_os = "linux")]
-            {
-                explorer_program_name = Some("xdg-open");
-            }
-        }
-        self.show_quit_button(ui, ctx);
-    }
+//     fn show_file_menu(&mut self, ui: &mut Ui, ctx: &Context) {
+//         #[cfg(any(target_os = "windows", target_os = "macos"))]
+//         {
+//             self.show_save_button(ui);
+//             self.show_load_button(ui);
+//             #[cfg(target_os = "macos")]
+//             {
+//                 explorer_program_name = Some("open");
+//             }
+//             #[cfg(target_os = "linux")]
+//             {
+//                 explorer_program_name = Some("xdg-open");
+//             }
+//         }
+//         self.show_quit_button(ui, ctx);
+//     }
 
-    // TODO get this working for other OS's
-    #[cfg(target_os = "windows")]
-    fn show_save_button(&mut self, ui: &mut Ui) {
-        use wfd::DialogParams;
+//     // TODO get this working for other OS's
+//     #[cfg(target_os = "windows")]
+//     fn show_save_button(&mut self, ui: &mut Ui) {
+//         use wfd::DialogParams;
 
-        if ui.button("Save").clicked() {
-            ui.close_menu();
+//         if ui.button("Save").clicked() {
+//             ui.close_menu();
 
-            let dialog_result = wfd::save_dialog(DialogParams {
-                default_extension: "json",
-                file_types: vec![("JSON Files", "*.json")],
-                file_name: "graph.json",
-                ..Default::default()
-            });
-            if let Ok(dialog_result) = dialog_result {
-                std::fs::write(
-                    dialog_result.selected_file_path,
-                    serde_json::to_string(self).unwrap(),
-                )
-                .ok();
-            }
-        }
-    }
+//             let dialog_result = wfd::save_dialog(DialogParams {
+//                 default_extension: "json",
+//                 file_types: vec![("JSON Files", "*.json")],
+//                 file_name: "graph.json",
+//                 ..Default::default()
+//             });
+//             if let Ok(dialog_result) = dialog_result {
+//                 std::fs::write(
+//                     dialog_result.selected_file_path,
+//                     serde_json::to_string(self).unwrap(),
+//                 )
+//                 .ok();
+//             }
+//         }
+//     }
 
-    // TODO get this working for other OS's
-    #[cfg(target_os = "windows")]
-    fn show_load_button(&mut self, ui: &mut Ui) {
-        use wfd::DialogParams;
+//     // TODO get this working for other OS's
+//     #[cfg(target_os = "windows")]
+//     fn show_load_button(&mut self, ui: &mut Ui) {
+//         use wfd::DialogParams;
 
-        if ui.button("Load").clicked() {
-            ui.close_menu();
+//         if ui.button("Load").clicked() {
+//             ui.close_menu();
 
-            let dialog_result = wfd::open_dialog(DialogParams {
-                file_types: vec![("JSON Files", "*.json")],
-                ..Default::default()
-            });
-            if let Ok(dialog_result) = dialog_result {
-                if let Ok(file) = std::fs::read(dialog_result.selected_file_path) {
-                    if let Ok(c) = serde_json::from_slice::<EframeApp>(file.as_slice()) {
-                        *self = c;
-                    }
-                }
-            }
-        }
-    }
+//             let dialog_result = wfd::open_dialog(DialogParams {
+//                 file_types: vec![("JSON Files", "*.json")],
+//                 ..Default::default()
+//             });
+//             if let Ok(dialog_result) = dialog_result {
+//                 if let Ok(file) = std::fs::read(dialog_result.selected_file_path) {
+//                     if let Ok(c) = serde_json::from_slice::<EframeApp>(file.as_slice()) {
+//                         *self = c;
+//                     }
+//                 }
+//             }
+//         }
+//     }
 
-    fn show_quit_button(&mut self, ui: &mut Ui, ctx: &Context) {
-        if ui.button("Quit").clicked() {
-            ui.close_menu();
+//     fn show_quit_button(&mut self, ui: &mut Ui, ctx: &Context) {
+//         if ui.button("Quit").clicked() {
+//             ui.close_menu();
 
-            #[cfg(not(target_arch = "wasm32"))]
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-        }
-    }
+//             #[cfg(not(target_arch = "wasm32"))]
+//             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+//         }
+//     }
 
-    fn update_canvas_from_editors(&mut self) {
-        match (
-            self.options.mode,
-            self.options.mode_change_data,
-            self.editors.get_matrix_editor_mut(),
-        ) {
-            (Mode::Classical, None, MatrixEditor::Classical(matrix_editor)) => {
-                if matrix_editor.is_canvas_update_ready() {
-                    let matrix = &matrix_editor.matrix;
-                    let canvas = &mut self.canvas;
-                    Self::update_edges_from_classical_matrix(matrix, canvas);
-                    matrix_editor.on_canvas_updated();
-                }
-            }
-            (Mode::Quantum, None, MatrixEditor::Complex(_)) => {}
-            _ => {}
-        }
-    }
+//     fn update_canvas_from_editors(&mut self) {
+//         match (
+//             self.options.mode,
+//             self.options.mode_change_data,
+//             self.editors.get_matrix_editor_mut(),
+//         ) {
+//             (Mode::Classical, None, MatrixEditor::Classical(matrix_editor)) => {
+//                 if matrix_editor.is_canvas_update_ready() {
+//                     let matrix = &matrix_editor.matrix;
+//                     let canvas = &mut self.canvas;
+//                     Self::update_edges_from_classical_matrix(matrix, canvas);
+//                     matrix_editor.on_canvas_updated();
+//                 }
+//             }
+//             (Mode::Quantum, None, MatrixEditor::Complex(_)) => {}
+//             _ => {}
+//         }
+//     }
 
-    fn update_edges_from_classical_matrix(matrix: &DMatrix<f64>, canvas: &mut Canvas) {
-        for (i, j) in (0..matrix.nrows()).flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
-        {
-            if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
-                if canvas.is_line_between_nodes(i, j) {
-                    canvas.remove_line_between_nodes(i, j);
-                }
-            } else if !canvas.is_line_between_nodes(i, j) {
-                canvas.add_line_between_nodes(i, j);
-            }
-        }
-    }
+//     fn update_edges_from_classical_matrix(matrix: &DMatrix<f64>, canvas: &mut Canvas) {
+//         for (i, j) in (0..matrix.nrows()).flat_map(|i| (i + 1..matrix.ncols()).map(move |j| (i, j)))
+//         {
+//             if matrix[(i, j)] == 0.0 && matrix[(j, i)] == 0.0 {
+//                 if canvas.is_line_between_nodes(i, j) {
+//                     canvas.remove_line_between_nodes(i, j);
+//                 }
+//             } else if !canvas.is_line_between_nodes(i, j) {
+//                 canvas.add_line_between_nodes(i, j);
+//             }
+//         }
+//     }
 
-    fn update_editors_from_canvas(&mut self, edges: &[(usize, usize)]) {
-        if !self.canvas.node_deletion_history.is_empty() {
-            self.editors
-                .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
-        }
+//     fn update_editors_from_canvas(&mut self, edges: &[(usize, usize)]) {
+//         if !self.canvas.node_deletion_history.is_empty() {
+//             self.editors
+//                 .remove_nodes(mem::take(&mut self.canvas.node_deletion_history));
+//         }
 
-        self.editors.update_editor_from_edges(edges);
+//         self.editors.update_editor_from_edges(edges);
 
-        self.options.clear_mode_change_data();
-    }
-}
+//         self.options.clear_mode_change_data();
+//     }
+// }
 
 //// "Powered By" message
 // fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
