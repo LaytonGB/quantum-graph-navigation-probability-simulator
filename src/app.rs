@@ -12,12 +12,14 @@ use crate::model::Model;
 use crate::options::{Mode, Options};
 use crate::panels::Layout;
 use crate::tool::Tool;
+use crate::view::View;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
     model: Model,
+    view: View,
 }
 
 impl EframeApp {
