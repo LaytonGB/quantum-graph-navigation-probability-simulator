@@ -1,18 +1,13 @@
-use crate::{state::State, text_fields::TextFields, EframeApp};
+use crate::{canvas::Canvas, state::State, text_fields::TextFields, EframeApp};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {
     pub state: State,
-    previous_state: State,
-
-    text_field: TextFields,
+    pub text_fields: TextFields,
+    pub canvas: Canvas,
 }
 
 impl Model {
-    pub fn update_previous_state(&mut self) {
-        self.previous_state = self.state.clone();
-    }
-
     pub fn save(&self, app: &EframeApp) -> Result<(), String> {
         let State::PendingSave { ref path_buffer } = self.state else {
             panic!("Can only save when State is PendingSave");

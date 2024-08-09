@@ -1,6 +1,6 @@
 use egui::Ui;
 
-use crate::canvas::Canvas;
+use crate::canvas_old::CanvasOld;
 use crate::graph_node::GraphNode;
 use crate::options::Snap;
 
@@ -25,7 +25,7 @@ pub struct ContextMenuValues {
 pub struct ContextMenu;
 
 impl ContextMenu {
-    pub fn plot_context_menu(canvas: &mut Canvas, ctx_ui: &mut Ui) {
+    pub fn plot_context_menu(canvas: &mut CanvasOld, ctx_ui: &mut Ui) {
         ctx_ui.menu_button("Add Node", |ui| {
             ui.horizontal(|ui| {
                 ui.label("X:");

@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::position::Position;
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SimulationMode {
     #[default]
@@ -33,5 +35,9 @@ pub enum State {
     },
     PendingLoad {
         path_buffer: PathBuf,
+    },
+    PendingPlace {
+        path_buffer: PathBuf,
+        position: Position,
     },
 }

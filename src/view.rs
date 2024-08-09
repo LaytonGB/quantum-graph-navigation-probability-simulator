@@ -1,4 +1,4 @@
-use crate::{canvas_menu::CanvasMenu, file_menu::FileMenu, model::Model};
+use crate::{canvas_menu::CanvasMenu, file_menu::FileMenu, layout_menu::LayoutMenu, model::Model};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct View {
@@ -20,7 +20,7 @@ impl View {
                 #[cfg(not(target_arch = "wasm32"))]
                 FileMenu::show(ui, ctx, model);
                 ui.add_space(16.0);
-                CanvasMenu::show(ui, ctx, model);
+                CanvasMenu::show(ui, model);
                 ui.add_space(16.0);
                 LayoutMenu::show(ui, ctx, model);
                 ui.add_space(16.0);

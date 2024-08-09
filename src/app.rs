@@ -5,8 +5,8 @@ use egui::Context;
 use egui::{panel::Side, Ui};
 use nalgebra::DMatrix;
 
-use crate::canvas::Canvas;
 use crate::canvas_actions::CanvasActions;
+use crate::canvas_old::CanvasOld;
 use crate::editors::{Editor, EditorsContainer, MatrixEditor};
 use crate::model::Model;
 use crate::options::{Mode, Options};
@@ -18,8 +18,8 @@ use crate::view::View;
 #[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
-    model: Model,
-    view: View,
+    pub model: Model,
+    pub view: View,
 }
 
 impl EframeApp {

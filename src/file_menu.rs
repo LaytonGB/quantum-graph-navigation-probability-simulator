@@ -1,4 +1,4 @@
-use crate::{model::Model, EframeApp};
+use crate::model::Model;
 
 pub struct FileMenu;
 
@@ -53,6 +53,8 @@ impl FileMenu {
     #[cfg(target_os = "windows")]
     fn show_load_button(ui: &mut egui::Ui, model: &mut Model) {
         use wfd::DialogParams;
+
+        use crate::state::State;
 
         if ui.button("Load").clicked() {
             ui.close_menu();

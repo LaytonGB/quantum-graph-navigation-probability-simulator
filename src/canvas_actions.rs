@@ -2,7 +2,7 @@ use std::{cell::RefCell, num::ParseFloatError, rc::Rc};
 
 use egui::Ui;
 
-use crate::canvas::Canvas;
+use crate::canvas_old::CanvasOld;
 use crate::editors::EditorsContainer;
 use crate::graph_line::GraphLine;
 use crate::graph_node::GraphNode;
@@ -18,7 +18,7 @@ impl CanvasActions {
     pub fn canvas_menu(
         &mut self,
         ui: &mut Ui,
-        canvas: &mut Canvas,
+        canvas: &mut CanvasOld,
         editors: &mut EditorsContainer,
     ) {
         ui.menu_button("Canvas", |ui| {
@@ -50,7 +50,7 @@ impl CanvasActions {
     }
 
     #[cfg(target_family = "windows")]
-    pub fn place_graph(&self, canvas: &mut Canvas, graph_center: GraphNode) {
+    pub fn place_graph(&self, canvas: &mut CanvasOld, graph_center: GraphNode) {
         use wfd::DialogParams;
 
         let dialog_result = wfd::open_dialog(DialogParams {
@@ -90,7 +90,7 @@ struct CanvasDetails {
 }
 
 impl CanvasDetails {
-    fn place_on_canvas(&self, canvas: &mut Canvas, new_center: GraphNode) {
+    fn place_on_canvas(&self, canvas: &mut CanvasOld, new_center: GraphNode) {
         let old_len = canvas.nodes.len();
         let old_center = {
             let (x_min, y_min, x_max, y_max) = self.nodes.iter().fold(
