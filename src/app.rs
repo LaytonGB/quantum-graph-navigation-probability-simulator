@@ -15,7 +15,7 @@ use crate::tool::Tool;
 use crate::view::View;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
     model: Model,
@@ -46,9 +46,9 @@ impl eframe::App for EframeApp {
 
     /// Called each time the UI needs repainting, which may be many times per
     /// second.
-    fn update(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or
-        // `Area`. For inspiration and more examples, go to https://emilk.github.io/egui
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let mut model = self.model.clone();
+        self.view.show(ctx, &mut model);
 
         // Custom font setup
         // let mut fonts = FontDefinitions::default();

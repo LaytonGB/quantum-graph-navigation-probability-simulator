@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SimulationMode {
     #[default]
@@ -18,12 +20,18 @@ impl Default for SimulationState {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub enum State {
     #[default]
     Editing,
     Simulating {
         mode: SimulationMode,
         state: SimulationState,
+    },
+    PendingSave {
+        path_buffer: PathBuf,
+    },
+    PendingLoad {
+        path_buffer: PathBuf,
     },
 }
