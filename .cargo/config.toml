@@ -6,4 +6,4 @@
 rustflags = ["--cfg=web_sys_unstable_apis"]
 
 [build]
-rustflags = ["-Z", "threads=8"]
+rustflags = ["-C", "link-arg=-fuse-ld=lld", "-Z", "threads=8"]
