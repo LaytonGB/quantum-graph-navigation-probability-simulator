@@ -1,10 +1,7 @@
 use egui::panel::Side;
 use strum::IntoEnumIterator;
 
-use crate::{
-    canvas_menu::CanvasMenu, file_menu::FileMenu, layout_menu::LayoutMenu, model::Model,
-    state::State, tool::Tool,
-};
+use crate::{canvas_menu::CanvasMenu, file_menu::FileMenu, model::Model, state::State, tool::Tool};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct View;
@@ -22,11 +19,11 @@ impl View {
             egui::menu::bar(ui, |ui| {
                 // TODO rework this when we can save in web
                 #[cfg(not(target_arch = "wasm32"))]
-                FileMenu::show(ui, ctx, model);
-                ui.add_space(16.0);
+                {
+                    FileMenu::show(ui, ctx, model);
+                    ui.add_space(16.0);
+                }
                 CanvasMenu::show(ui, model);
-                ui.add_space(16.0);
-                LayoutMenu::show(ui, ctx, model);
                 ui.add_space(16.0);
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });

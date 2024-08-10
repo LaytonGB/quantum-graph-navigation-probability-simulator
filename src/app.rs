@@ -1,9 +1,11 @@
-#![allow(unused_imports)]
 use std::mem;
+use std::path::PathBuf;
 
 use egui::Context;
 use egui::{panel::Side, Ui};
+use log::error;
 use nalgebra::DMatrix;
+use prisma::white_point::E;
 
 use crate::canvas_actions::CanvasActions;
 use crate::canvas_old::CanvasOld;
@@ -11,6 +13,8 @@ use crate::editors::{Editor, EditorsContainer, MatrixEditor};
 use crate::model::Model;
 use crate::options::{Mode, Options};
 use crate::panels::Layout;
+use crate::position::Position;
+use crate::state::State;
 use crate::tool::Tool;
 use crate::view::View;
 
@@ -48,6 +52,7 @@ impl eframe::App for EframeApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let mut model = self.model.clone();
         View::show(ctx, &mut model);
+        self.update_from_model(model);
 
         // Custom font setup
         // let mut fonts = FontDefinitions::default();
@@ -74,6 +79,50 @@ impl eframe::App for EframeApp {
         // self.show_left_panel(ctx);
         // self.show_right_panel(ctx);
         // self.show_center_panel(ctx);
+    }
+}
+
+impl EframeApp {
+    fn update_from_model(&mut self, model: Model) {
+        if let Err(e) = self.update_from_state(&model.state) {
+            error!("Error updating from state: {}", e);
+        }
+
+        self.model.text_fields = model.text_fields;
+    }
+
+    fn update_from_state(&mut self, state: &State) -> Result<(), String> {
+        match state {
+            State::PendingSave { ref path_buffer } => Model::save(self, path_buffer)?,
+            State::PendingLoad { ref path_buffer } => Model::load(self, path_buffer)?,
+            State::PendingPlace {
+                ref path_buffer,
+                ref position,
+            } => self.place_graph(path_buffer, position)?,
+            _ => self.model.state = state.clone(),
+        };
+
+        Ok(())
+    }
+
+    pub fn place_graph(
+        &mut self,
+        path_buffer: &PathBuf,
+        position: &Position,
+    ) -> Result<(), String> {
+        use crate::serializable_canvas::SerializableCanvas;
+
+        let canvas_details: SerializableCanvas = std::fs::read(path_buffer)
+            .map_err(|e| format!("File load failed:\n{}", e))
+            .and_then(|file| {
+                serde_json::from_slice::<EframeApp>(file.as_slice())
+                    .map_err(|e| format!("File load failed:\n{}", e))
+            })?
+            .into();
+
+        self.model.canvas.place_on_canvas(canvas_details, *position);
+
+        Ok(())
     }
 }
 

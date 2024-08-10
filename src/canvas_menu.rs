@@ -1,6 +1,6 @@
 use wfd::DialogParams;
 
-use crate::{model::Model, position::Position, EframeApp};
+use crate::{model::Model, position::Position};
 
 pub struct CanvasMenu;
 
@@ -28,8 +28,8 @@ impl CanvasMenu {
                     .map_err(|e| format!("File load failed:\n{:?}", e));
 
                     let position = Position::try_from((
-                        model.text_fields.add_graph_x,
-                        model.text_fields.add_graph_y,
+                        model.text_fields.add_graph_x.as_str(),
+                        model.text_fields.add_graph_y.as_str(),
                     ));
 
                     if let (Ok(path_buffer), Ok(graph_place_coords)) = (path, position) {

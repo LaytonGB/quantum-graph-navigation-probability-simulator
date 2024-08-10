@@ -10,10 +10,10 @@ impl Position {
     pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
 }
 
-impl TryFrom<(String, String)> for Position {
+impl TryFrom<(&str, &str)> for Position {
     type Error = String;
 
-    fn try_from((x, y): (String, String)) -> Result<Self, Self::Error> {
+    fn try_from((x, y): (&str, &str)) -> Result<Self, Self::Error> {
         let x = x.parse().map_err(|e| format!("Failed to parse x: {}", e))?;
         let y = y.parse().map_err(|e| format!("Failed to parse y: {}", e))?;
         Ok(Self { x, y })

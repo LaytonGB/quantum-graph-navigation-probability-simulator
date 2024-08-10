@@ -60,8 +60,8 @@ impl CanvasActions {
         if let Ok(dialog_result) = dialog_result {
             if let Ok(file) = std::fs::read(dialog_result.selected_file_path) {
                 if let Ok(c) = serde_json::from_slice::<EframeApp>(file.as_slice()) {
-                    let canvas_details = CanvasDetails::from(c);
-                    canvas_details.place_on_canvas(canvas, graph_center);
+                    // let canvas_details = CanvasDetails::from(c);
+                    // canvas_details.place_on_canvas(canvas, graph_center);
                 }
             }
         }
@@ -118,31 +118,31 @@ impl CanvasDetails {
     }
 }
 
-impl From<EframeApp> for CanvasDetails {
-    fn from(value: EframeApp) -> Self {
-        let nodes: Vec<GraphNode> = value
-            .canvas
-            .nodes
-            .iter()
-            .map(|n| n.borrow().clone())
-            .collect();
-        let lines: Vec<(usize, usize)> = value
-            .canvas
-            .lines
-            .iter()
-            .filter_map(|l| {
-                let (a, b) = (l.start.borrow().clone(), l.end.borrow().clone());
-                let (a, b) = (
-                    nodes.iter().position(|n| *n == a),
-                    nodes.iter().position(|n| *n == b),
-                );
-                if let (Some(a), Some(b)) = (a, b) {
-                    Some((a, b))
-                } else {
-                    None
-                }
-            })
-            .collect();
-        Self { nodes, lines }
-    }
-}
+// impl From<EframeApp> for CanvasDetails {
+//     fn from(value: EframeApp) -> Self {
+//         let nodes: Vec<GraphNode> = value
+//             .canvas
+//             .nodes
+//             .iter()
+//             .map(|n| n.borrow().clone())
+//             .collect();
+//         let lines: Vec<(usize, usize)> = value
+//             .canvas
+//             .lines
+//             .iter()
+//             .filter_map(|l| {
+//                 let (a, b) = (l.start.borrow().clone(), l.end.borrow().clone());
+//                 let (a, b) = (
+//                     nodes.iter().position(|n| *n == a),
+//                     nodes.iter().position(|n| *n == b),
+//                 );
+//                 if let (Some(a), Some(b)) = (a, b) {
+//                     Some((a, b))
+//                 } else {
+//                     None
+//                 }
+//             })
+//             .collect();
+//         Self { nodes, lines }
+//     }
+// }

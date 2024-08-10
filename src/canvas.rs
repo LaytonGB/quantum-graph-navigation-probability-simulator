@@ -1,11 +1,39 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{node::Node, serializable_canvas::SerializableCanvas};
+use crate::{
+    canvas_state::CanvasState, node::Node, position::Position,
+    serializable_canvas::SerializableCanvas,
+};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Canvas {
+    pub state: CanvasState,
     pub nodes: Vec<Rc<RefCell<Node>>>,
     pub lines: Vec<(Rc<RefCell<Node>>, Rc<RefCell<Node>>)>,
+}
+
+impl Canvas {
+    pub fn place_on_canvas(&mut self, canvas_details: SerializableCanvas, position: Position) {
+        let SerializableCanvas { nodes, lines } = canvas_details;
+        let nodes: Vec<Rc<RefCell<Node>>> = nodes
+            .iter()
+            .map(|n| Rc::new(RefCell::new(n.clone())))
+            .collect();
+        let lines: Vec<(Rc<RefCell<Node>>, Rc<RefCell<Node>>)> = lines
+            .iter()
+            .map(|(n1, n2)| (Rc::clone(&nodes[*n1]), Rc::clone(&nodes[*n2])))
+            .collect();
+
+        let offset = Position::ZERO - position;
+
+        for node in nodes.iter() {
+            let mut node = node.borrow_mut();
+            node.position += offset;
+        }
+
+        self.nodes.extend(nodes);
+        self.lines.extend(lines);
+    }
 }
 
 impl serde::Serialize for Canvas {
@@ -13,6 +41,7 @@ impl serde::Serialize for Canvas {
         let Canvas {
             nodes: ref_nodes,
             lines: ref_lines,
+            ..
         } = self;
         let nodes: Vec<Node> = ref_nodes.iter().map(|n| n.borrow().clone()).collect();
         let lines: Vec<(usize, usize)> = ref_lines
@@ -47,6 +76,10 @@ impl From<SerializableCanvas> for Canvas {
             .iter()
             .map(|(n1, n2)| (Rc::clone(&nodes[*n1]), Rc::clone(&nodes[*n2])))
             .collect();
-        Self { nodes, lines }
+        Self {
+            nodes,
+            lines,
+            ..Default::default()
+        }
     }
 }
