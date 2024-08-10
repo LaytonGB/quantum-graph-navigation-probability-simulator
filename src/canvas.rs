@@ -5,11 +5,13 @@ use crate::{
     serializable_canvas::SerializableCanvas,
 };
 
+pub type Line = (Rc<RefCell<Node>>, Rc<RefCell<Node>>);
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Canvas {
     pub state: CanvasState,
     pub nodes: Vec<Rc<RefCell<Node>>>,
-    pub lines: Vec<(Rc<RefCell<Node>>, Rc<RefCell<Node>>)>,
+    pub lines: Vec<Line>,
 }
 
 impl Canvas {
@@ -19,7 +21,7 @@ impl Canvas {
             .iter()
             .map(|n| Rc::new(RefCell::new(n.clone())))
             .collect();
-        let lines: Vec<(Rc<RefCell<Node>>, Rc<RefCell<Node>>)> = lines
+        let lines: Vec<Line> = lines
             .iter()
             .map(|(n1, n2)| (Rc::clone(&nodes[*n1]), Rc::clone(&nodes[*n2])))
             .collect();
@@ -72,7 +74,7 @@ impl From<SerializableCanvas> for Canvas {
             .iter()
             .map(|n| Rc::new(RefCell::new(n.clone())))
             .collect();
-        let lines: Vec<(Rc<RefCell<Node>>, Rc<RefCell<Node>>)> = lines
+        let lines: Vec<Line> = lines
             .iter()
             .map(|(n1, n2)| (Rc::clone(&nodes[*n1]), Rc::clone(&nodes[*n2])))
             .collect();

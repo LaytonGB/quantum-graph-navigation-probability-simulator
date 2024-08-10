@@ -1,8 +1,8 @@
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use std::path::PathBuf;
 
 use crate::{
-    canvas::Canvas, node::Node, panels::Panels, position::Position,
-    serializable_canvas::SerializableCanvas, state::State, text_fields::TextFields, EframeApp,
+    canvas::Canvas, panels::Panels, position::Position, state::State, text_fields::TextFields,
+    EframeApp,
 };
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -33,8 +33,8 @@ impl Model {
 
     pub fn queue_place_graph(&mut self, path_buffer: PathBuf, position: Position) {
         self.state = State::PendingPlace {
-            path_buffer: path_buffer.clone(),
-            position: position.clone(),
+            path_buffer,
+            position,
         };
     }
 
