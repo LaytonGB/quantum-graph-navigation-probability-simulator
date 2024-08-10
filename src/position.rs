@@ -55,3 +55,9 @@ impl SubAssign for Position {
         self.y -= rhs.y;
     }
 }
+
+impl From<Position> for [f64; 2] {
+    fn from(position: Position) -> Self {
+        [position.x, position.y]
+    }
+}

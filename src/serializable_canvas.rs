@@ -1,4 +1,4 @@
-use crate::{canvas::Canvas, node::Node, EframeApp};
+use crate::{canvas::Canvas, line::Line, node::Node, EframeApp};
 
 /// Used to store the canvas nodes and lines when serializing and deserializing.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -17,10 +17,10 @@ impl From<EframeApp> for SerializableCanvas {
         let nodes: Vec<Node> = ref_nodes.iter().map(|n| n.borrow().clone()).collect();
         let lines: Vec<(usize, usize)> = ref_lines
             .iter()
-            .map(|(n1, n2)| {
+            .map(|Line { start, end }| {
                 (
-                    ref_nodes.iter().position(|node| *node == *n1).unwrap(),
-                    ref_nodes.iter().position(|node| *node == *n2).unwrap(),
+                    ref_nodes.iter().position(|node| *node == *start).unwrap(),
+                    ref_nodes.iter().position(|node| *node == *end).unwrap(),
                 )
             })
             .collect();

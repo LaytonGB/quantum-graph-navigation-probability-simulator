@@ -14,6 +14,7 @@ pub mod editors;
 pub mod file_menu;
 pub mod graph_line;
 pub mod graph_node;
+pub mod line;
 pub mod model;
 pub mod node;
 pub mod options;

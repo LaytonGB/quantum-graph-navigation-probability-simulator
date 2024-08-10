@@ -14,7 +14,7 @@ impl View {
         Self::show_top_panel(ctx, model);
         Self::show_left_panel(ctx, model);
         Self::show_right_panel(ctx, model);
-        // self.show_center_panel(ctx);
+        Self::show_center_panel(ctx, model);
     }
 
     fn show_top_panel(ctx: &egui::Context, model: &mut Model) {
@@ -40,6 +40,7 @@ impl View {
                 for tool in Tool::iter() {
                     tool.show(ui, selected_tool);
                 }
+
                 // BUG: this line is needed, allows left-panel resizing
                 // is likely fixed if egui is updated
                 ui.separator();
@@ -51,12 +52,16 @@ impl View {
         if model.panels.mode {
             egui::SidePanel::new(Side::Right, "right_panel").show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.heading("Computation Style");
+                    ui.heading("Mode");
                     Self::show_mode_buttons(ui, model);
 
                     // TODO: Show relevant options
 
                     Self::show_editors(ui, model);
+
+                    // BUG: this line is needed, allows left-panel resizing
+                    // is likely fixed if egui is updated
+                    ui.separator();
                 });
             });
         }
@@ -93,6 +98,8 @@ impl View {
         };
 
         let mode = *mode;
+        ui.separator();
+        ui.heading("Simulation Mode");
         ui.horizontal(|ui| {
             for simulation_mode in SimulationMode::iter() {
                 let btn = ui.button(simulation_mode.to_string());
@@ -121,5 +128,11 @@ impl View {
             SimulationMode::Classical => Classical::show_classical_editors(ui, model),
             SimulationMode::Quantum => Quantum::show_quantum_editors(ui, model),
         }
+    }
+
+    fn show_center_panel(ctx: &egui::Context, model: &mut Model) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            model.canvas.show(ui);
+        });
     }
 }
