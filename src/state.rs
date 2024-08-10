@@ -1,28 +1,20 @@
 use std::path::PathBuf;
 
-use crate::{position::Position, tool::Tool};
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum SimulationMode {
-    #[default]
-    Classical,
-    Quantum,
-    SideBySide,
-}
+use crate::{position::Position, simulation_mode::SimulationMode, tool::Tool};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SimulationState {
-    Paused(usize),
-    Running(usize),
+    Paused { step: usize },
+    Running { step: usize },
 }
 
 impl Default for SimulationState {
     fn default() -> Self {
-        Self::Paused(0)
+        Self::Paused { step: 0 }
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, strum::Display, serde::Serialize, serde::Deserialize)]
 pub enum State {
     Editing {
         selected_tool: Tool,
