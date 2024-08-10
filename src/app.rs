@@ -19,7 +19,6 @@ use crate::view::View;
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct EframeApp {
     pub model: Model,
-    pub view: View,
 }
 
 impl EframeApp {
@@ -48,7 +47,7 @@ impl eframe::App for EframeApp {
     /// second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let mut model = self.model.clone();
-        self.view.show(ctx, &mut model);
+        View::show(ctx, &mut model);
 
         // Custom font setup
         // let mut fonts = FontDefinitions::default();

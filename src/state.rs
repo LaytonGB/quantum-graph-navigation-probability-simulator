@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::position::Position;
+use crate::{position::Position, tool::Tool};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SimulationMode {
@@ -22,10 +22,11 @@ impl Default for SimulationState {
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum State {
-    #[default]
-    Editing,
+    Editing {
+        selected_tool: Tool,
+    },
     Simulating {
         mode: SimulationMode,
         state: SimulationState,
@@ -40,4 +41,12 @@ pub enum State {
         path_buffer: PathBuf,
         position: Position,
     },
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::Editing {
+            selected_tool: Tool::Node,
+        }
+    }
 }

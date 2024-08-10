@@ -1,19 +1,23 @@
-use crate::{canvas_menu::CanvasMenu, file_menu::FileMenu, layout_menu::LayoutMenu, model::Model};
+use egui::panel::Side;
+use strum::IntoEnumIterator;
+
+use crate::{
+    canvas_menu::CanvasMenu, file_menu::FileMenu, layout_menu::LayoutMenu, model::Model,
+    state::State, tool::Tool,
+};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct View {
-    pub title: String,
-}
+pub struct View;
 
 impl View {
-    pub fn show(&self, ctx: &egui::Context, model: &mut Model) {
-        self.show_top_panel(ctx, model);
-        // self.show_left_panel(ctx);
+    pub fn show(ctx: &egui::Context, model: &mut Model) {
+        Self::show_top_panel(ctx, model);
+        Self::show_left_panel(ctx, model);
         // self.show_right_panel(ctx);
         // self.show_center_panel(ctx);
     }
 
-    fn show_top_panel(&self, ctx: &egui::Context, model: &mut Model) {
+    fn show_top_panel(ctx: &egui::Context, model: &mut Model) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 // TODO rework this when we can save in web
@@ -29,17 +33,12 @@ impl View {
         });
     }
 
-    fn show_left_panel(&self, ctx: &egui::Context, model: &mut Model) {
-        if self.layout.tools {
+    fn show_left_panel(ctx: &egui::Context, model: &mut Model) {
+        if let (State::Editing { selected_tool }, true) = (&mut model.state, model.panels.tools) {
             egui::SidePanel::new(Side::Left, "left_panel").show(ctx, |ui| {
                 ui.heading("Tools");
-                let mut tool_buttons: [Tool; 4] = [Tool::Move, Tool::Node, Tool::Line, Tool::Label];
-                for tool in tool_buttons.iter_mut() {
-                    tool.show(
-                        ui,
-                        &mut self.selected_tool,
-                        &mut self.canvas_actions.add_label_text,
-                    );
+                for tool in Tool::iter() {
+                    tool.show(ui, selected_tool);
                 }
                 // BUG: this line is needed, allows left-panel resizing
                 // is likely fixed if egui is updated

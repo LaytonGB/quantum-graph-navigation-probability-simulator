@@ -1,8 +1,15 @@
-use egui::Ui;
-
-// TODO implement enum to string and enum iter crate
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    strum::Display,
+    strum::EnumIter,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Tool {
     #[default]
     Move,
@@ -12,25 +19,10 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Tool::Move => "Move",
-            Tool::Node => "Node",
-            Tool::Line => "Line",
-            Tool::Label => "Label",
-        }
-    }
-
-    pub fn show(&self, ui: &mut Ui, selected_tool: &mut Tool, label_text: &mut String) {
-        let mut btn = ui.button(self.name().to_string());
+    pub fn show(&self, ui: &mut egui::Ui, selected_tool: &mut Tool) {
+        let mut btn = ui.button(self.to_string());
         if selected_tool == self {
             btn = btn.highlight();
-            if *self == Tool::Label {
-                ui.group(|ui| {
-                    ui.label("Label text:");
-                    ui.text_edit_singleline(label_text);
-                });
-            }
         }
 
         if btn.clicked() {

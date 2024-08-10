@@ -19,6 +19,7 @@ pub mod node;
 pub mod options;
 pub mod panels;
 pub mod position;
+pub mod serializable_canvas;
 pub mod state;
 pub mod text_fields;
 pub mod tool;
